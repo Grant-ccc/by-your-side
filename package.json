@@ -1,0 +1,13 @@
+{
+  "name": "by-your-side-prototype",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Personal character companion app interaction prototype",
+  "scripts": {
+    "check": "node --check 原型/app.js",
+    "test": "node 原型/检查原型.cjs"
+  },
+  "devDependencies": {
+    "playwright": "1.62.1"
+  }
+}

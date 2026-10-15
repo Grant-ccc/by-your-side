@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+node_modules/
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+原型/测试备份.json
+原型/preview.png
+*-原型备份.json
+playwright-report/
+test-results/

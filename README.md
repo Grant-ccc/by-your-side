@@ -2,6 +2,14 @@
 
 李泽言主题的个人安卓陪伴 App 项目。目前完成需求整理、暖酒红静态效果图和可点击网页原型；尚未接入 AI、云端通知或生成安卓安装包。
 
+## 项目文档与开发规划
+
+[进入项目文档](docs/wiki/Home.md)：产品范围、技术架构、开发路线、MySQL 数据模型、接口草案、开发交付、通知与成本、决策记录。
+
+正式工程方向为 **React + TypeScript + MySQL**，规划使用 Node.js + TypeScript 后端与 Capacitor 安卓打包。现有 `原型/` 仍是 HTML/CSS/JavaScript，不代表迁移已经完成。下一阶段先做真实聊天保存流程，并尽早验证 vivo 通知。
+
+`docs/wiki/` 为版本化文档源，准备同步至 [GitHub Wiki](https://github.com/Grant-ccc/by-your-side/wiki)。Wiki 必须先在 GitHub 网页初始化第一篇页面，随后可运行 `python scripts/sync_wiki.py --publish` 发布；`python scripts/sync_wiki.py` 只检查和导出本地文档。
+
 ## 体验原型
 
 用浏览器打开 [独立原型 HTML](原型/在你身边-原型.html)，无需安装依赖。GitHub 文件页面展示的是源码，下载项目后打开即可。

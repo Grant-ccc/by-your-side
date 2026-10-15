@@ -13,3 +13,5 @@ Thumbs.db
 *-原型备份.json
 playwright-report/
 test-results/
+.wiki-export/
+.wiki-checkout/

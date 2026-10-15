@@ -2,7 +2,7 @@
 
 [返回首页](Home.md)
 
-状态：基础迁移文件 `database/migrations/001_initial.sql` 与 mysql2 存储代码已编写，包含 users、characters、relationships、conversations、messages、budget_periods、generation_runs 七张表。本机 MySQL 引擎未就绪，不能称为已执行建表。其余实体仍为草案。
+状态：基础迁移文件 `database/migrations/001_initial.sql` 与 mysql2 存储代码已编写，包含 users、characters、relationships、conversations、messages、budget_periods、generation_runs 七张表。已在 CI 临时 MySQL 上完成建表、重复迁移与存储验证；本机 MySQL 引擎仍未就绪。其余实体仍为草案。
 
 ## 建模约定
 
@@ -59,4 +59,4 @@ messages 不用“文本为空”表示失败。明确区分已提交、等待�
 
 备份包含格式版本和关联关系；导入需要完整校验，并在事务或受控恢复流程中生效。删除标记不能在合并时静默复活。密钥、会话令牌和推送注册信息不作为用户可携带备份内容。
 
-迁移采用命名锁、内容校验和与 schema_migrations 表。MySQL DDL 可能隐式提交，迁移失败后需检查部分建表状态，不自动重置数据库。真库重跑与并发存储检查已加入 CI，结果需单独核对。本页中后续实体不充当已实现的 SQL。
+迁移采用命名锁、内容校验和与 schema_migrations 表。MySQL DDL 可能隐式提交，迁移失败后需检查部分建表状态，不自动重置数据库。[CI 真库验证已通过](https://github.com/Grant-ccc/by-your-side/actions/runs/38720279819)。本页中后续实体不充当已实现的 SQL。

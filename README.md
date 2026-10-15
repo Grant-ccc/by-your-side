@@ -39,7 +39,7 @@ npm run test:web
 
 默认 `npm test` 的 MySQL 真库用例显式跳过，`test:db` 才执行真库往返、并发去重与重连持久化。GitHub Actions 配置了隔离的临时 MySQL 服务，用于验证迁移、重复迁移和真实读写。不能把仅通过接口测试解释为已经完成 MySQL 验证。
 
-本轮本机 Docker 因启动故障不可用，因此本机数据库往返尚未完成。当前可先运行前后端并检查不可用提示，实际验证状态以 Wiki 开发路线和 Actions 结果为准。
+本轮本机 Docker 因启动故障不可用，因此本机数据库往返尚未完成。GitHub Actions 的真实 MySQL 迁移、重复迁移、并发去重与重连读取检查已通过：[验证记录](https://github.com/Grant-ccc/by-your-side/actions/runs/38720279819)。CI 通过不等于本机环境已恢复；当前本机可先检查数据库不可用提示。
 
 ## 体验原型
 

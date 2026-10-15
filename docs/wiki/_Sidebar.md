@@ -2,6 +2,7 @@
 
 - [项目首页](Home.md)
 - [产品与范围](Product.md)
+- [v0.1 手机聊天试用版](Trial-Scope.md)
 - [技术架构](Architecture.md)
 - [开发路线](Roadmap.md)
 - [MySQL 数据模型](Data-Model.md)

@@ -9,6 +9,7 @@ import {
   type ServiceHealth,
   type SendMessage,
 } from '@bys/shared';
+import { transport } from './lan';
 export class ApiRequestError extends Error {
   constructor(
     message: string,
@@ -19,23 +20,24 @@ export class ApiRequestError extends Error {
   }
 }
 async function request(path: string, init?: RequestInit, timeout = 8000) {
-  const response = await fetch(path, {
-    ...init,
-    headers: { 'Content-Type': 'application/json', ...init?.headers },
-    signal: AbortSignal.timeout(timeout),
-  });
-  const data = await response.json();
-  if (!response.ok)
+  const { status, data } = await transport(path, init, timeout);
+  if (status < 200 || status >= 300)
     throw new ApiRequestError(
       data.error?.message || '服务暂时不可用',
       data.error?.code || 'SERVICE_UNAVAILABLE',
-      response.status,
+      status,
     );
   return data;
 }
 export async function health(): Promise<ServiceHealth> {
-  const r = await fetch('/health', { signal: AbortSignal.timeout(5000) });
-  return r.json();
+  const { status, data } = await transport('/health', undefined, 5000);
+  if (status === 401 || status === 403)
+    throw new ApiRequestError(
+      data.error?.message || '连接凭据不正确',
+      data.error?.code || 'DEVICE_UNAUTHORIZED',
+      status,
+    );
+  return data;
 }
 export async function bootstrap(): Promise<Conversation[]> {
   const data = await request('/api/bootstrap');

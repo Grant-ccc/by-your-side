@@ -1,0 +1,7 @@
+{
+  "appId": "app.byourside.companion",
+  "appName": "在你身边",
+  "webDir": "dist",
+  "server": { "androidScheme": "https" },
+  "android": { "allowMixedContent": false }
+}

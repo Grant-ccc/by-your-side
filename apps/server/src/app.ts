@@ -9,12 +9,27 @@ import { StoreError, type ChatStore } from './store.js';
 import { z } from 'zod';
 import { AiError } from './ai-provider.js';
 import type { ChatAi } from './ai-chat.js';
+import { authorized, privateIpv4, validDeviceToken } from './lan-policy.js';
 
 export function buildApp(
   store: ChatStore,
-  options: { port?: number; webPort?: number; logger?: boolean; ai?: ChatAi } = {},
+  options: {
+    port?: number;
+    webPort?: number;
+    logger?: boolean;
+    ai?: ChatAi;
+    lan?: { host: string; token: string; cert: Buffer; key: Buffer };
+  } = {},
 ) {
-  const app = Fastify({ logger: options.logger ?? false, bodyLimit: 16 * 1024 });
+  if (options.lan && (!privateIpv4(options.lan.host) || !validDeviceToken(options.lan.token)))
+    throw new Error('LAN requires a private IPv4 host and a generated device token');
+  const app = Fastify({
+    logger: options.logger ? { redact: ['req.headers.authorization'] } : false,
+    bodyLimit: 16 * 1024,
+    ...(options.lan
+      ? { https: { cert: options.lan.cert, key: options.lan.key, minVersion: 'TLSv1.2' as const } }
+      : {}),
+  });
   const origins = new Set([
     `http://127.0.0.1:${options.webPort ?? 17400}`,
     `http://localhost:${options.webPort ?? 17400}`,
@@ -22,10 +37,22 @@ export function buildApp(
   ]);
   app.addHook('onRequest', async (request, reply) => {
     const host = request.headers.host?.split(':')[0];
-    if (!host || !['127.0.0.1', 'localhost'].includes(host))
+    if (
+      !host ||
+      !['127.0.0.1', 'localhost', ...(options.lan ? [options.lan.host] : [])].includes(host)
+    )
       return reply
         .code(403)
         .send({ error: { code: 'LOCAL_ONLY', message: '当前仅支持本机开发访问' } });
+    if (options.lan && !authorized(request.headers.authorization, options.lan.token))
+      return reply
+        .code(401)
+        .send({
+          error: {
+            code: 'DEVICE_UNAUTHORIZED',
+            message: '连接凭据不正确，请重新粘贴电脑上的连接配置。',
+          },
+        });
     const origin = request.headers.origin;
     if (origin && !origins.has(origin))
       return reply
@@ -85,7 +112,7 @@ export function buildApp(
       capabilities: {
         ai: options.ai?.configured ?? false,
         storage: 'mysql' as const,
-        authentication: 'local-only' as const,
+        authentication: options.lan ? ('device-token' as const) : ('local-only' as const),
       },
     };
   });

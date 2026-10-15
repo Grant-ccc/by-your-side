@@ -18,6 +18,7 @@ import {
   replyStatus,
 } from './api';
 import './development.css';
+import { isAndroid, getConnection, configureConnection, forgetConnection } from './lan';
 
 type Page = 'home' | 'chat' | 'album' | 'settings' | 'memory' | 'trip';
 type Tab = '日常记录' | '习惯打卡' | '备忘录';
@@ -136,6 +137,16 @@ function readOutbox(conversationId: string): SendMessage | null {
 }
 
 export function App() {
+  const [pairing, setPairing] = useState('');
+  const [connectionAddress, setConnectionAddress] = useState('');
+  const [pairingError, setPairingError] = useState('');
+  const [pairingBusy, setPairingBusy] = useState(false);
+  useEffect(() => {
+    if (isAndroid())
+      void getConnection()
+        .then((c) => setConnectionAddress(c.server))
+        .catch(() => {});
+  }, []);
   const [ai, setAi] = useState<AiInfo | null>(null);
   const [reply, setReply] = useState<ReplyResult | null>(null);
   const [replying, setReplying] = useState(false);
@@ -307,6 +318,26 @@ export function App() {
       </button>
     </header>
   );
+  async function connectPhone() {
+    setPairingBusy(true);
+    setPairingError('');
+    try {
+      const connection = await configureConnection(pairing);
+      // Changing servers must not retain a previous server's messages or pending send.
+      requestEpoch.current++;
+      setMessages([]);
+      setOutbox(null);
+      setConversationId('');
+      setService(null);
+      setConnectionAddress(connection.server);
+      setPairing('');
+      await refresh();
+    } catch (error) {
+      setPairingError(error instanceof Error ? error.message : '连接配置无法保存。');
+    } finally {
+      setPairingBusy(false);
+    }
+  }
   function daily() {
     return (
       <>
@@ -597,7 +628,9 @@ export function App() {
             <p className="muted">
               {statusText}
               <br />
-              当前仅本机开发访问，尚无云端账号登录。
+              {isAndroid()
+                ? '同一 Wi-Fi 连接电脑，电脑需要保持服务运行。'
+                : '电脑开发预览；手机版使用独立的 HTTPS 局域网接口。'}
             </p>
             {loadError && <p className="connection-error">{loadError}</p>}
             <button
@@ -608,6 +641,67 @@ export function App() {
               重新连接与读取历史
             </button>
           </section>
+          {isAndroid() && (
+            <section className="settings-group">
+              <h3>连接我的电脑</h3>
+              <p className="muted">
+                {connectionAddress || '尚未配置连接'}
+                <br />
+                在电脑生成连接配置后，完整粘贴到这里。这里不需要 DeepSeek 密钥。
+              </p>
+              <label className="connection-label">
+                电脑连接配置
+                <textarea
+                  aria-label="电脑连接配置"
+                  value={pairing}
+                  onChange={(e) => setPairing(e.target.value)}
+                  maxLength={4096}
+                  spellCheck={false}
+                  autoCorrect="off"
+                  autoCapitalize="off"
+                  placeholder="粘贴电脑生成的整段连接配置"
+                  disabled={pairingBusy || sending || replying || !!outbox}
+                />
+              </label>
+              {pairingError && (
+                <p className="connection-error" role="alert">
+                  {pairingError}
+                </p>
+              )}
+              {!!outbox && (
+                <p className="soft-note">请先在聊天页确认上一条消息的保存结果，再更换连接。</p>
+              )}
+              <button
+                className="secondary full section-gap"
+                disabled={!pairing.trim() || pairingBusy || sending || replying || !!outbox}
+                onClick={() => void connectPhone()}
+              >
+                {pairingBusy ? '正在连接…' : '保存并连接'}
+              </button>
+              {connectionAddress && (
+                <button
+                  className="text-button"
+                  disabled={pairingBusy || sending || replying || !!outbox}
+                  onClick={() => {
+                    void forgetConnection()
+                      .then(() => {
+                        requestEpoch.current++;
+                        setPairing('');
+                        setConnectionAddress('');
+                        setMessages([]);
+                        setOutbox(null);
+                        setConversationId('');
+                        setService(null);
+                        setLoadError('连接已解除，请重新配置。');
+                      })
+                      .catch(() => setPairingError('无法解除连接，请重试。'));
+                  }}
+                >
+                  解除本机连接
+                </button>
+              )}
+            </section>
+          )}
           <section className="settings-group">
             <h3>本阶段已经接入</h3>
             <p className="muted">

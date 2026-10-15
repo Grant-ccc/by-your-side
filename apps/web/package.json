@@ -9,6 +9,8 @@
   },
   "dependencies": {
     "@bys/shared": "0.1.0",
+    "@capacitor/android": "8.4.3",
+    "@capacitor/core": "8.4.3",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

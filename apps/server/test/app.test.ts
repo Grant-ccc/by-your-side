@@ -6,6 +6,9 @@ import { buildApp } from '../src/app.js';
 import { StoreError, type ChatStore } from '../src/store.js';
 import { AiError } from '../src/ai-provider.js';
 import type { ChatAi } from '../src/ai-chat.js';
+import { execFileSync } from 'node:child_process';
+import { mkdir, readFile, unlink, rmdir } from 'node:fs/promises';
+import { resolve } from 'node:path';
 
 // Deliberately test-only. Production never switches to this store if MySQL fails.
 class TestStore implements ChatStore {
@@ -63,6 +66,103 @@ class TestStore implements ChatStore {
     this.closed = true;
   }
 }
+
+test('LAN API requires device credentials before reads/writes and still rejects hostile hosts/origins', async () => {
+  const directory = resolve('.local', `tls-test-${randomUUID()}`);
+  await mkdir(directory, { recursive: true });
+  const certFile = resolve(directory, 'cert.pem'),
+    keyFile = resolve(directory, 'key.pem');
+  let app;
+  try {
+    execFileSync(
+      process.env.OPENSSL_PATH ||
+        (process.platform === 'win32'
+          ? 'C:\\Program Files\\Git\\usr\\bin\\openssl.exe'
+          : 'openssl'),
+      [
+        'req',
+        '-x509',
+        '-newkey',
+        'rsa:2048',
+        '-nodes',
+        '-days',
+        '1',
+        '-subj',
+        '/CN=synthetic-test',
+        '-keyout',
+        keyFile,
+        '-out',
+        certFile,
+      ],
+      { stdio: 'ignore', windowsHide: true },
+    );
+    const token = 'a'.repeat(43);
+    app = buildApp(new TestStore(), {
+      port: 17402,
+      lan: {
+        host: '192.168.1.2',
+        token,
+        cert: await readFile(certFile),
+        key: await readFile(keyFile),
+      },
+    });
+    for (const url of ['/health', '/api/bootstrap', '/api/ai', '/api/conversations']) {
+      assert.equal(
+        (await app.inject({ url, headers: { host: '192.168.1.2:17402' } })).statusCode,
+        401,
+      );
+      assert.equal(
+        (
+          await app.inject({
+            url,
+            headers: { host: '192.168.1.2:17402', authorization: 'Bearer wrong' },
+          })
+        ).statusCode,
+        401,
+      );
+    }
+    assert.equal(
+      (
+        await app.inject({
+          method: 'POST',
+          url: '/api/conversations',
+          payload: { title: 'test' },
+          headers: { host: '192.168.1.2:17402' },
+        })
+      ).statusCode,
+      401,
+    );
+    const headers = { host: '192.168.1.2:17402', authorization: `Bearer ${token}` };
+    assert.equal((await app.inject({ url: '/health', headers })).statusCode, 200);
+    assert.equal(
+      (await app.inject({ url: '/api/bootstrap', headers })).json().capabilities.authentication,
+      'device-token',
+    );
+    assert.equal(
+      (await app.inject({ url: '/health', headers: { ...headers, host: 'evil.example' } }))
+        .statusCode,
+      403,
+    );
+    assert.equal(
+      (
+        await app.inject({
+          url: '/health',
+          headers: { ...headers, origin: 'https://evil.example' },
+        })
+      ).statusCode,
+      403,
+    );
+  } finally {
+    if (app) await app.close();
+    for (const file of [certFile, keyFile])
+      try {
+        await unlink(file);
+      } catch (e) {
+        if ((e as NodeJS.ErrnoException).code !== 'ENOENT') throw e;
+      }
+    await rmdir(directory);
+  }
+});
 test('messages are validated, idempotent and cursor paginated', async () => {
   const store = new TestStore(),
     app = buildApp(store);

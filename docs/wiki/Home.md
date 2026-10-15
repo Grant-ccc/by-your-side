@@ -12,6 +12,7 @@
 | --- | --- |
 | [产品与范围](Product.md) | 完整产品目标及与近期小版本的区别 |
 | [v0.1 手机聊天试用版](Trial-Scope.md) | 近期必须做、暂不做、完成条件与待定项 |
+| [安卓局域网连接](Android-LAN.md) | HTTPS 配对方案、安装准备和实测边界 |
 | [技术架构](Architecture.md) | React、TypeScript、MySQL，以及前后端职责 |
 | [开发路线](Roadmap.md) | 当前状态、里程碑、下一步与完成条件 |
 | [数据模型](Data-Model.md) | 消息、记忆、日程、任务、预算之间的关系 |

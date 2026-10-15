@@ -1,0 +1,34 @@
+name: Android trial APK
+on:
+  push:
+    branches: [main]
+    paths: ['apps/web/**', 'packages/shared/**', 'package*.json', '.github/workflows/android.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - run: npm ci --no-fund --no-audit
+      - run: npm run build -w @bys/shared && npm run build -w @bys/web
+      - run: npx cap sync android
+        working-directory: apps/web
+      - run: bash gradlew --no-daemon testDebugUnitTest assembleDebug
+        working-directory: apps/web/android
+      - uses: actions/upload-artifact@v4
+        with:
+          name: by-your-side-android-trial
+          path: apps/web/android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+          if-no-files-found: error

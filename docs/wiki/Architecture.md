@@ -6,16 +6,16 @@
 
 | 层 | 方向 | 状态 |
 | --- | --- | --- |
-| 客户端 | React + TypeScript | 用户指定，待建工程 |
-| 构建 | Vite | 规划选择，建工程时核对版本 |
+| 客户端 | React + TypeScript | 工程已建，主页与聊天迁移起步 |
+| 构建 | Vite | 已接入并通过生产构建 |
 | 安卓 | Capacitor，必要时补 Kotlin 插件 | 规划路线，需设备验证 |
-| 后端 | Node.js + TypeScript | 规划路线 |
-| 云端关系数据库 | MySQL | 用户指定，尚未安装/建表 |
+| 后端 | Node.js + TypeScript + Fastify | 本地 API 与接口测试已实现 |
+| 关系数据库 | MySQL 8.4、mysql2、版本化 SQL | 迁移/存储代码已写；本机引擎故障，真库待验证 |
 | 图片 | 独立文件存储，MySQL 保存元数据与关联 | 规划原则 |
 | AI | 服务端可替换的文字/图片适配接口 | 服务商未定 |
 | 任务 | 数据库保存到期任务，后台调度执行 | 初期设计 |
 
-后端框架、ORM、状态管理、MySQL 大版本和托管尚未确定，不把候选工具写成已采用。正式开发时使用仍受支持的稳定版本并提交锁文件。
+本轮选择 Fastify 与 mysql2，不引入 ORM；初期采用 React 自带状态机制。版本写入 package.json 与 package-lock.json。数据库运行配置、代码已存在与真库验证通过是三个不同状态，不能混写。托管和身份验证尚未实施。
 
 React 支持使用 TypeScript 编写组件；Capacitor 提供 Web 与原生能力的连接。相关入口：[React TypeScript](https://react.dev/learn/typescript)、[Vite](https://vite.dev/guide/)、[Capacitor](https://capacitorjs.com/docs)。
 
@@ -37,6 +37,8 @@ flowchart TB
 ```
 
 手机不直接连接 MySQL，不打包共享的 AI 服务密钥。后端负责身份校验、消息保存、日程事实、调用预算、记忆处理和访问隔离。客户端负责展示、输入、状态反馈与本地缓存。离线时可读已有缓存，离线发送队列的具体策略待定。
+
+当前仅实现本机开发模式：后端只绑定回环地址，校验 Host/Origin，不提供生产账号认证。消息接口使用固定的本地开发身份与关系隔离；不能将它部署为公开或多人服务。正式身份校验、日程、预算执行和客户端离线缓存仍需后续实现。
 
 ## 第一条真实聊天流程
 

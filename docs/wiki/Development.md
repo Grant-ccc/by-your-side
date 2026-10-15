@@ -18,19 +18,18 @@ python -m http.server 8000 --bind 127.0.0.1
 python 原型/打包原型.py
 ```
 
-已有检查命令：
+旧原型的检查命令：
 
 ```sh
 npm install
-npm run check
-npm test
+npm run test:prototype
 ```
 
 检查需要本机 Edge；可用 `CHROME_PATH` 指向 Chromium 浏览器。测试在独立浏览器上下文操作示例数据，会生成预览截图和忽略提交的测试备份。它验证原型，不证明安卓后台或真实 AI 已可用。
 
-## 正式工程目录提案
+## 正式工程
 
-以下目录尚未创建，不要据此运行不存在的启动命令：
+以下目录已创建：
 
 ```text
 apps/
@@ -46,13 +45,43 @@ scripts/            文档同步、开发辅助
 原型/                保留既有设计与交互参考
 ```
 
-安卓工程随 Capacitor 初始化后放入确定的客户端目录；不提前虚构 Gradle 或 SDK 配置。
+安卓工程仍未创建，随 Capacitor 初始化后放入确定的客户端目录；不提前虚构 Gradle 或 SDK 配置。
+
+### 首次启动
+
+```sh
+npm ci
+npm run setup:local
+npm run db:up
+npm run db:migrate
+npm run dev
+```
+
+开发页 `http://127.0.0.1:17400`，API `http://127.0.0.1:17401`。后端仅允许本机开发访问，尚无生产认证。MySQL 默认通过 Compose 绑定本机 3307。`db:down` 仅停止，不删除数据库卷。
+
+`setup:local` 生成被忽略的 `.env.local` 与随机开发密码，不覆盖已有文件。已有 MySQL 时可编辑本地配置、创建空数据库并授权，然后跳过 Docker 启动。不要把真实密码或本地环境文件提交。
+
+### 检查
+
+```sh
+npm run check
+npm test
+npm run build
+npm run db:check
+npm run test:db
+# 保持开发服务运行后：
+npm run test:web
+```
+
+默认单元/接口测试不要求 MySQL，真库用例显式跳过。`test:db` 强制执行真实 MySQL 往返检查，数据库不可用时失败，不静默跳过。浏览器测试用测试数据验证成功流程，同时验证真实数据库未就绪的失败界面；两者不能混为真库通过。
+
+GitHub Actions 使用隔离的临时 MySQL 服务，执行类型检查、测试、构建、迁移、重复迁移与真库测试；工作流内的测试账号仅用于临时服务，不是部署凭据。
 
 ## M1 环境检查
 
 检查实际 Node.js 与包管理器版本、MySQL 服务与可用账号、JDK、Android Studio/SDK 和真机连接方式。选择依赖时核对当前稳定文档，记录版本与锁文件。先本机开发，再决定云端托管。
 
-尚无生产环境变量。后续仅提交 `.env.example` 中的变量名与无效示例；数据库密码、模型密钥、设备令牌不入库、不打包进客户端。生产登录与访问隔离在云端可访问前完成。
+当前提交 `.env.example` 中的变量名与无效示例；本地随机密码仅在被忽略文件中。数据库密码、模型密钥、设备令牌不入库、不打包进客户端。生产登录与访问隔离在云端可访问前完成。当前本机 Docker 启动故障尚未解决，真实 MySQL 执行结果需以 CI 或恢复后的本机测试为准。
 
 ## 检查与变更纪律
 

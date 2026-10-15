@@ -15,3 +15,8 @@ playwright-report/
 test-results/
 .wiki-export/
 .wiki-checkout/
+dist/
+*.tsbuildinfo
+*.log
+.local/
+coverage/

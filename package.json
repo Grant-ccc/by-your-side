@@ -1,13 +1,28 @@
 {
-  "name": "by-your-side-prototype",
+  "name": "by-your-side",
   "version": "0.1.0",
   "private": true,
-  "description": "Personal character companion app interaction prototype",
+  "description": "Character companion app development workspace",
+  "workspaces": ["apps/*", "packages/*"],
+  "engines": {"node": ">=22.12.0"},
   "scripts": {
-    "check": "node --check 原型/app.js",
-    "test": "node 原型/检查原型.cjs"
+    "dev": "npm run build -w @bys/shared && node scripts/dev.mjs",
+    "build": "npm run build -w @bys/shared && npm run build -w @bys/server && npm run build -w @bys/web",
+    "check": "npm run build -w @bys/shared && npm run check --workspaces --if-present && node --check 原型/app.js",
+    "test": "npm run build -w @bys/shared && node --import tsx --test apps/server/test/*.test.ts",
+    "test:db": "npm run build -w @bys/shared && node scripts/test-db.mjs",
+    "test:web": "node scripts/check-web.cjs",
+    "test:prototype": "node 原型/检查原型.cjs",
+    "setup:local": "node scripts/init-local-env.mjs",
+    "db:up": "docker compose --env-file .env.local up -d --wait mysql",
+    "db:down": "docker compose --env-file .env.local stop mysql",
+    "db:migrate": "tsx apps/server/src/migrate.ts",
+    "db:check": "tsx apps/server/src/db-check.ts"
   },
   "devDependencies": {
-    "playwright": "1.62.1"
+    "playwright": "1.62.1",
+    "tsx": "4.23.15",
+    "typescript": "7.0.2",
+    "@types/node": "^22.0.0"
   }
 }

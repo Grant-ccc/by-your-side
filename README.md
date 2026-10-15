@@ -35,11 +35,14 @@ npm run build
 npm run test:db
 # 先保持 npm run dev 运行，再执行浏览器检查（需本机 Edge）：
 npm run test:web
+npm run test:local-chat
 ```
 
 默认 `npm test` 的 MySQL 真库用例显式跳过，`test:db` 才执行真库往返、并发去重与重连持久化。GitHub Actions 配置了隔离的临时 MySQL 服务，用于验证迁移、重复迁移和真实读写。不能把仅通过接口测试解释为已经完成 MySQL 验证。
 
-本轮本机 Docker 因启动故障不可用，因此本机数据库往返尚未完成。GitHub Actions 的真实 MySQL 迁移、重复迁移、并发去重与重连读取检查已通过：[验证记录](https://github.com/Grant-ccc/by-your-side/actions/runs/38720279819)。CI 通过不等于本机环境已恢复；当前本机可先检查数据库不可用提示。
+本机 Docker 已恢复，MySQL 迁移、重复迁移、并发去重与重连读取检查通过；实际浏览器也已验证 React → API → MySQL 保存消息并在刷新后读取。`test:local-chat` 需要先构建后端并启动开发服务，结束时仅删除本次生成的唯一测试消息，不调用 AI。GitHub Actions 的真库检查也已通过：[验证记录](https://github.com/Grant-ccc/by-your-side/actions/runs/38720279819)。
+
+如果默认数据库端口 3307 已被占用，可在忽略提交的 `.env.local` 中将 `DB_PORT` 改为可用端口，例如 43307，再运行 `db:up` 并重启开发服务；无需停止其他项目的数据库。
 
 ## 体验原型
 

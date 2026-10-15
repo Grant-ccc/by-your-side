@@ -17,6 +17,7 @@
     "test": "npm run build -w @bys/shared && node --import tsx --test apps/server/test/*.test.ts",
     "test:db": "npm run build -w @bys/shared && node scripts/test-db.mjs",
     "test:web": "node scripts/check-web.cjs",
+    "test:local-chat": "node scripts/check-local-chat.cjs",
     "test:prototype": "node 原型/检查原型.cjs",
     "setup:local": "node scripts/init-local-env.mjs",
     "db:up": "docker compose --env-file .env.local up -d --wait mysql",

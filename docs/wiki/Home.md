@@ -23,7 +23,7 @@
 
 真实数据库验证：GitHub Actions 的临时 MySQL 已通过迁移、重复迁移、并发去重、分页及重连读取检查。[验证记录](https://github.com/Grant-ccc/by-your-side/actions/runs/38720279819)，对应代码提交 `58c4323`。
 
-本机限制：Docker 引擎仍启动失败，尚未在本机执行迁移或真库读写。CI 验证通过不等于本机数据库已经恢复。
+本机验证：Docker 已恢复，真实 MySQL 的迁移、重复迁移、并发去重与重连读取通过；实际浏览器已验证 React → API → MySQL 保存消息，并在刷新后读取。测试不调用 AI。
 
 未完成：真实 AI、自动记忆、日程调度、安卓安装包、真实通知、图片生成、云端同步与正式身份验证。新工程先迁移主页与聊天，其他模块明确标注为预览/待接入。
 
@@ -33,7 +33,7 @@
 
 React、TypeScript、MySQL 已选定；后端采用 Node.js + Fastify，数据访问使用 mysql2 与版本化 SQL。Capacitor、AI 服务、托管和推送尚待实施/验证。
 
-下一阶段先完成真实 MySQL 验证与本机环境恢复，然后选定 AI 接口接入真实回复；同时尽早验证安卓通知条件。当前不会用固定台词冒充 AI 回复。
+下一阶段选定 AI 接口并接入真实回复；同时尽早验证安卓通知条件。当前不会用固定台词冒充 AI 回复。
 
 ## 文档来源与维护
 
@@ -42,4 +42,4 @@ React、TypeScript、MySQL 已选定；后端采用 Node.js + Fastify，数据�
 - [交互原型目录](https://github.com/Grant-ccc/by-your-side/tree/main/原型)
 - [暖红效果图](https://github.com/Grant-ccc/by-your-side/tree/main/效果图_暖红版)
 
-`docs/wiki/` 是公开技术与产品文档源，GitHub Wiki 是发布副本。只描述应用能力，不收录个人身份、真实日程、私聊、个人外貌或私人关系经历。修改先进入主仓库，再同步 Wiki，避免两份各自演进。本文是规划，不声称已经创建所描述的正式工程。
+`docs/wiki/` 是公开技术与产品文档源，GitHub Wiki 是发布副本。只描述应用能力，不收录个人身份、真实日程、私聊、个人外貌或私人关系经历。修改先进入主仓库，再同步 Wiki，避免两份各自演进。已实现内容与后续规划按当前状态分别标明。

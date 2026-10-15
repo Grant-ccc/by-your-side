@@ -16,6 +16,25 @@ const { randomUUID } = require('node:crypto');
   try {
     await page.goto('http://127.0.0.1:17400');
     await page.waitForLoadState('networkidle');
+    const liveHealth = await (await page.request.get('http://127.0.0.1:17400/health')).json();
+    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    if (liveHealth.database === 'connected') {
+      await page.getByText('本地消息存储已连接', { exact: true }).waitFor();
+      assert.equal(await page.getByLabel('聊天消息').isEnabled(), true);
+    }
+    // Explicitly exercise unavailable UI regardless of the actual database state.
+    await page.route('**/health', (route) =>
+      route.fulfill({
+        status: 503,
+        json: {
+          status: 'degraded',
+          database: 'unavailable',
+          ai: 'not-configured',
+          mode: 'local-development',
+        },
+      }),
+    );
+    await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
     await page.getByText('暂时不能读取或保存消息', { exact: true }).waitFor();
     assert.equal(await page.getByLabel('聊天消息').isDisabled(), true);
@@ -113,7 +132,7 @@ const { randomUUID } = require('node:crypto');
     await page.screenshot({ path: '.local/screenshots/react-desktop.png' });
     assert.deepEqual(errors, []);
     console.log(
-      'PASS: real database-unavailable UI; fixture retry request ID, persisted history rendering, navigation, tabs, narrow layout; zero page errors. Fixtures do not verify MySQL.',
+      'PASS: live health UI; simulated unavailable UI; fixture retry request ID, history rendering, navigation, tabs, narrow layout; zero page errors. Fixtures do not verify MySQL.',
     );
   } finally {
     await browser.close();

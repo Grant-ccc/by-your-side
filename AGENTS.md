@@ -12,4 +12,4 @@
 
 ## 当前项目状态
 
-已保留可点击网页原型，并新增 React + TypeScript 前端、Fastify + TypeScript 后端、MySQL 迁移与消息存储接口。本机 Docker 启动故障，真实数据库验证与开发进度见 `docs/wiki/Home.md` 和 `docs/wiki/Roadmap.md`；不把测试数据、规划或已写接口当成已完成真实 AI/安卓功能。
+已保留可点击网页原型，并新增 React + TypeScript 前端、Fastify + TypeScript 后端、MySQL 迁移与消息存储接口。本机 Docker 已恢复，迁移、真实数据库读写及浏览器保存后刷新读取已验证；开发进度见 `docs/wiki/Home.md` 和 `docs/wiki/Roadmap.md`。AI 与安卓功能仍未实现，不把测试数据或规划当成已完成功能。

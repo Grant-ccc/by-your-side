@@ -300,7 +300,13 @@ export function App() {
     ? '正在连接本地服务'
     : connected
       ? `MySQL 已连接 · ${aiEnabled ? 'DeepSeek已配置' : 'AI 待配置密钥'}`
-      : '数据库尚未就绪';
+      : service?.database === 'unavailable'
+        ? '数据库尚未就绪'
+        : isAndroid()
+          ? connectionAddress
+            ? '电脑连接需要检查'
+            : '尚未连接电脑'
+          : '本地服务连接需要检查';
   const go = (next: Page) => {
     setPage(next);
   };
@@ -329,6 +335,7 @@ export function App() {
       setOutbox(null);
       setConversationId('');
       setService(null);
+      setLoading(false);
       setConnectionAddress(connection.server);
       setPairing('');
       await refresh();

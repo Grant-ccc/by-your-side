@@ -1,0 +1,7 @@
+node_modules/
+**/dist/
+.local/
+.wiki-checkout/
+.wiki-export/
+原型/
+package-lock.json

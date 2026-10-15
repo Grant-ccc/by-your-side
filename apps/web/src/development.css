@@ -1,1 +1,160 @@
-body{display:block;padding:0}.app-shell{min-height:100dvh;display:flex;align-items:center;justify-content:center;gap:65px;padding:34px}.service-card{margin-top:28px;border:1px solid var(--line);background:#faf0e8;border-radius:16px;padding:16px}.service-card>span{font-size:13px;color:var(--wine);font-weight:600}.service-card p{font-size:11px;color:var(--muted);margin-top:8px}.service-card.ready{border-color:#c2cdbf}.connection-strip{display:flex;align-items:center;gap:7px;font-size:10px;color:var(--muted);padding:10px 3px 0}.connection-strip button{margin-left:auto;font-size:10px;color:var(--wine);padding:5px}.connection-dot{width:6px;height:6px;background:var(--rose);border-radius:50%}.connection-dot.online{background:var(--green)}.first-message{text-align:center;padding:40px 12px 20px;color:var(--muted)}.first-message h3{font-size:17px;color:var(--wine);margin:17px 0 12px}.first-message p{font-size:12px;line-height:1.9}.plush{width:126px!important;height:126px!important;stroke:none!important;overflow:visible;display:block;margin:5px auto}.pending-message{opacity:.7}.send-failure{background:var(--pale);border-radius:10px;padding:10px;margin-top:9px;font-size:11px;line-height:1.8}.send-failure p{line-height:1.7}.connection-error{color:var(--wine);font-size:12px;margin-top:12px;line-height:1.7}.chat-banner strong{font-size:12px}.composer{margin-top:8px}.empty-state .plush{margin:0 auto 20px}@media(max-width:760px){.app-shell{padding:0;display:block}.phone{height:100dvh}.connection-strip{padding-top:5px}.first-message{padding-top:35px}.first-message .plush{width:110px!important;height:110px!important}.composer button{padding:10px 13px;font-size:12px}}@media(max-width:360px){.pair{padding-left:17px;padding-right:17px}.person{width:66px}.pair-faces{gap:8px}.pair-copy{min-width:112px}.pair-copy h3{font-size:19px}.person .avatar{width:61px;height:61px}.pair-heart{left:90px}.mood-card{gap:10px}.mood-card h3{font-size:14px}}
+body {
+  display: block;
+  padding: 0;
+}
+.app-shell {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 65px;
+  padding: 34px;
+}
+.service-card {
+  margin-top: 28px;
+  border: 1px solid var(--line);
+  background: #faf0e8;
+  border-radius: 16px;
+  padding: 16px;
+}
+.service-card > span {
+  font-size: 13px;
+  color: var(--wine);
+  font-weight: 600;
+}
+.service-card p {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.service-card.ready {
+  border-color: #c2cdbf;
+}
+.connection-strip {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--muted);
+  padding: 10px 3px 0;
+}
+.connection-strip button {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--wine);
+  padding: 5px;
+}
+.connection-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--rose);
+  border-radius: 50%;
+}
+.connection-dot.online {
+  background: var(--green);
+}
+.first-message {
+  text-align: center;
+  padding: 40px 12px 20px;
+  color: var(--muted);
+}
+.first-message h3 {
+  font-size: 17px;
+  color: var(--wine);
+  margin: 17px 0 12px;
+}
+.first-message p {
+  font-size: 12px;
+  line-height: 1.9;
+}
+.plush {
+  width: 126px !important;
+  height: 126px !important;
+  stroke: none !important;
+  overflow: visible;
+  display: block;
+  margin: 5px auto;
+}
+.pending-message {
+  opacity: 0.7;
+}
+.send-failure {
+  background: var(--pale);
+  border-radius: 10px;
+  padding: 10px;
+  margin-top: 9px;
+  font-size: 11px;
+  line-height: 1.8;
+}
+.send-failure p {
+  line-height: 1.7;
+}
+.connection-error {
+  color: var(--wine);
+  font-size: 12px;
+  margin-top: 12px;
+  line-height: 1.7;
+}
+.chat-banner strong {
+  font-size: 12px;
+}
+.composer {
+  margin-top: 8px;
+}
+.empty-state .plush {
+  margin: 0 auto 20px;
+}
+@media (max-width: 760px) {
+  .app-shell {
+    padding: 0;
+    display: block;
+  }
+  .phone {
+    height: 100dvh;
+  }
+  .connection-strip {
+    padding-top: 5px;
+  }
+  .first-message {
+    padding-top: 35px;
+  }
+  .first-message .plush {
+    width: 110px !important;
+    height: 110px !important;
+  }
+  .composer button {
+    padding: 10px 13px;
+    font-size: 12px;
+  }
+}
+@media (max-width: 360px) {
+  .pair {
+    padding-left: 17px;
+    padding-right: 17px;
+  }
+  .person {
+    width: 66px;
+  }
+  .pair-faces {
+    gap: 8px;
+  }
+  .pair-copy {
+    min-width: 112px;
+  }
+  .pair-copy h3 {
+    font-size: 19px;
+  }
+  .person .avatar {
+    width: 61px;
+    height: 61px;
+  }
+  .pair-heart {
+    left: 90px;
+  }
+  .mood-card {
+    gap: 10px;
+  }
+  .mood-card h3 {
+    font-size: 14px;
+  }
+}

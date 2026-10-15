@@ -7,6 +7,7 @@
 - [MySQL 数据模型](Data-Model.md)
 - [接口草案](API-Design.md)
 - [开发与交付](Development.md)
+- [千问聊天配置](AI-Setup.md)
 - [通知与成本](Notifications-and-Costs.md)
 - [决策与待定项](Decisions.md)
 

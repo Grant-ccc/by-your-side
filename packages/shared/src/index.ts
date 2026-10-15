@@ -16,6 +16,7 @@ export const MessageSchema = z.object({
   text: z.string(),
   status: z.enum(['saved', 'waiting', 'failed']),
   createdAt: z.iso.datetime(),
+  replyToMessageId: IdSchema.nullable().optional(),
 });
 export const ConversationSchema = z.object({
   id: IdSchema,
@@ -31,10 +32,24 @@ export type Message = z.infer<typeof MessageSchema>;
 export type Conversation = z.infer<typeof ConversationSchema>;
 export type SendMessage = z.infer<typeof SendMessageSchema>;
 export type History = z.infer<typeof HistorySchema>;
+export const ReplyResultSchema = z.object({
+  state: z.enum(['idle', 'running', 'failed', 'succeeded']),
+  message: MessageSchema.optional(),
+  error: z.object({ code: z.string(), message: z.string(), retryable: z.boolean() }).optional(),
+});
+export type ReplyResult = z.infer<typeof ReplyResultSchema>;
+export const AiInfoSchema = z.object({
+  configured: z.boolean(),
+  model: z.string(),
+  budget: z
+    .object({ limit: z.number(), spent: z.number(), reserved: z.number(), currency: z.string() })
+    .nullable(),
+});
+export type AiInfo = z.infer<typeof AiInfoSchema>;
 export interface ServiceHealth {
   status: 'ok' | 'degraded';
   database: 'connected' | 'unavailable';
-  ai: 'not-configured';
+  ai: 'not-configured' | 'configured';
   mode: 'local-development';
 }
 export interface ApiError {

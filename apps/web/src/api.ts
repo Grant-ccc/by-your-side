@@ -1,5 +1,7 @@
 import {
   ConversationSchema,
+  ReplyResultSchema,
+  AiInfoSchema,
   HistorySchema,
   MessageSchema,
   type Conversation,
@@ -16,11 +18,11 @@ export class ApiRequestError extends Error {
     super(message);
   }
 }
-async function request(path: string, init?: RequestInit) {
+async function request(path: string, init?: RequestInit, timeout = 8000) {
   const response = await fetch(path, {
     ...init,
     headers: { 'Content-Type': 'application/json', ...init?.headers },
-    signal: AbortSignal.timeout(8000),
+    signal: AbortSignal.timeout(timeout),
   });
   const data = await response.json();
   if (!response.ok)
@@ -59,4 +61,24 @@ export async function sendMessage(id: string, input: SendMessage): Promise<Messa
     body: JSON.stringify(input),
   });
   return MessageSchema.parse(data.message);
+}
+export async function aiInfo() {
+  return AiInfoSchema.parse(await request('/api/ai'));
+}
+export async function replyStatus(id: string, messageId: string) {
+  return ReplyResultSchema.parse(
+    await request(`/api/conversations/${id}/messages/${messageId}/reply`),
+  );
+}
+export async function generateReply(id: string, messageId: string, retry = false) {
+  return ReplyResultSchema.parse(
+    await request(
+      `/api/conversations/${id}/messages/${messageId}/reply`,
+      {
+        method: 'POST',
+        body: JSON.stringify({ retry }),
+      },
+      60000,
+    ),
+  );
 }

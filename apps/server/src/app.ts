@@ -6,10 +6,13 @@ import {
   type ServiceHealth,
 } from '@bys/shared';
 import { StoreError, type ChatStore } from './store.js';
+import { z } from 'zod';
+import { AiError } from './ai-provider.js';
+import type { ChatAi } from './ai-chat.js';
 
 export function buildApp(
   store: ChatStore,
-  options: { port?: number; webPort?: number; logger?: boolean } = {},
+  options: { port?: number; webPort?: number; logger?: boolean; ai?: ChatAi } = {},
 ) {
   const app = Fastify({ logger: options.logger ?? false, bodyLimit: 16 * 1024 });
   const origins = new Set([
@@ -34,6 +37,8 @@ export function buildApp(
         .send({ error: { code: 'ORIGIN_NOT_ALLOWED', message: '不接受跨站请求' } });
   });
   app.setErrorHandler((error, request, reply) => {
+    if (error instanceof AiError)
+      return reply.code(error.status).send({ error: { code: error.code, message: error.message } });
     if (error instanceof StoreError)
       return reply
         .code(error.code === 'NOT_FOUND' ? 404 : 409)
@@ -47,14 +52,12 @@ export function buildApp(
         .code(statusCode)
         .send({ error: { code: 'INVALID_REQUEST', message: '请求格式不正确' } });
     request.log.warn({ code: 'DATABASE_UNAVAILABLE' }, 'Local database request failed');
-    return reply
-      .code(503)
-      .send({
-        error: {
-          code: 'DATABASE_UNAVAILABLE',
-          message: '数据库尚未就绪，请启动 MySQL 并执行迁移。消息没有伪装成已保存。',
-        },
-      });
+    return reply.code(503).send({
+      error: {
+        code: 'DATABASE_UNAVAILABLE',
+        message: '数据库尚未就绪，请启动 MySQL 并执行迁移。消息没有伪装成已保存。',
+      },
+    });
   });
   app.get('/health', async (_request, reply): Promise<ServiceHealth> => {
     try {
@@ -62,7 +65,7 @@ export function buildApp(
       return {
         status: 'ok',
         database: 'connected',
-        ai: 'not-configured',
+        ai: options.ai?.configured ? 'configured' : 'not-configured',
         mode: 'local-development',
       };
     } catch {
@@ -70,7 +73,7 @@ export function buildApp(
       return {
         status: 'degraded',
         database: 'unavailable',
-        ai: 'not-configured',
+        ai: options.ai?.configured ? 'configured' : 'not-configured',
         mode: 'local-development',
       };
     }
@@ -79,10 +82,41 @@ export function buildApp(
     await store.bootstrap();
     return {
       conversations: await store.conversations(),
-      capabilities: { ai: false, storage: 'mysql' as const, authentication: 'local-only' as const },
+      capabilities: {
+        ai: options.ai?.configured ?? false,
+        storage: 'mysql' as const,
+        authentication: 'local-only' as const,
+      },
     };
   });
   app.get('/api/conversations', async () => ({ conversations: await store.conversations() }));
+  app.get('/api/ai', async () => ({
+    configured: options.ai?.configured ?? false,
+    model: 'qwen3.7-plus',
+    budget: options.ai ? await options.ai.budget() : null,
+  }));
+  for (const method of ['GET', 'POST'] as const) {
+    app.route<{ Params: { id: string; messageId: string } }>({
+      method,
+      url: '/api/conversations/:id/messages/:messageId/reply',
+      handler: async (request, reply) => {
+        const id = IdSchema.safeParse(request.params.id),
+          source = IdSchema.safeParse(request.params.messageId);
+        const body = z
+          .object({ retry: z.boolean().default(false) })
+          .strict()
+          .safeParse(request.body ?? {});
+        if (!id.success || !source.success || (method === 'POST' && !body.success))
+          return reply
+            .code(400)
+            .send({ error: { code: 'INVALID_REQUEST', message: '回复请求格式不正确' } });
+        if (!options.ai) throw new AiError('AI_NOT_CONFIGURED', '尚未配置模型，消息可以保存。');
+        return method === 'GET'
+          ? options.ai.status(id.data, source.data)
+          : options.ai.reply(id.data, source.data, body.success ? body.data.retry : false);
+      },
+    });
+  }
   app.post('/api/conversations', async (request, reply) => {
     const input = CreateConversationSchema.safeParse(request.body);
     if (!input.success)
@@ -118,16 +152,16 @@ export function buildApp(
       const id = IdSchema.safeParse(request.params.id),
         input = SendMessageSchema.safeParse(request.body);
       if (!id.success || !input.success)
-        return reply
-          .code(400)
-          .send({
-            error: {
-              code: 'INVALID_REQUEST',
-              message: '请输入 1—2000 字的消息，并使用有效请求标识',
-            },
-          });
+        return reply.code(400).send({
+          error: {
+            code: 'INVALID_REQUEST',
+            message: '请输入 1—2000 字的消息，并使用有效请求标识',
+          },
+        });
       const result = await store.saveMessage(id.data, input.data);
-      return reply.code(result.duplicate ? 200 : 201).send({ ...result, ai: 'not-configured' });
+      return reply
+        .code(result.duplicate ? 200 : 201)
+        .send({ ...result, ai: options.ai?.configured ? 'configured' : 'not-configured' });
     },
   );
   app.addHook('onClose', async () => {

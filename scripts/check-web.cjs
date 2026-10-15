@@ -131,8 +131,92 @@ const { randomUUID } = require('node:crypto');
     await page.setViewportSize({ width: 1440, height: 1050 });
     await page.screenshot({ path: '.local/screenshots/react-desktop.png' });
     assert.deepEqual(errors, []);
+    // AI UI fixture only: no paid request; verify typing, persistence rendering and explicit retry.
+    await page.route('**/health', (route) =>
+      route.fulfill({
+        json: {
+          status: 'ok',
+          database: 'connected',
+          ai: 'configured',
+          mode: 'local-development',
+        },
+      }),
+    );
+    await page.route('**/api/ai', (route) =>
+      route.fulfill({
+        json: {
+          configured: true,
+          model: 'qwen3.7-plus',
+          budget: { limit: 20, spent: 0.001, reserved: 0, currency: 'CNY' },
+        },
+      }),
+    );
+    let replyCalls = 0,
+      releaseReply,
+      replyFailure = false;
+    let gate = new Promise((resolve) => {
+      releaseReply = resolve;
+    });
+    await page.route('**/messages/*/reply', async (route) => {
+      const sourceId = new URL(route.request().url()).pathname.split('/').at(-2);
+      const existing = saved.find((m) => m.replyToMessageId === sourceId);
+      if (route.request().method() === 'GET')
+        return route.fulfill({
+          json: existing ? { state: 'succeeded', message: existing } : { state: 'idle' },
+        });
+      replyCalls++;
+      await gate;
+      if (replyFailure)
+        return route.fulfill({
+          json: {
+            state: 'failed',
+            error: {
+              code: 'AI_RATE_LIMIT',
+              message: '模型暂时繁忙，可以稍后手动重试。',
+              retryable: true,
+            },
+          },
+        });
+      const message = existing || {
+        id: randomUUID(),
+        conversationId,
+        sequence: saved.length + 1,
+        clientRequestId: null,
+        role: 'assistant',
+        text: '模拟回复：我听着，慢慢说。',
+        status: 'saved',
+        createdAt: new Date().toISOString(),
+        replyToMessageId: sourceId,
+      };
+      if (!existing) saved.push(message);
+      return route.fulfill({ json: { state: 'succeeded', message } });
+    });
+    await page.reload();
+    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    await page.getByLabel('聊天消息').fill('AI 页面测试');
+    await page.getByRole('button', { name: '发送', exact: true }).click();
+    await page.getByRole('status').filter({ hasText: '正在输入…' }).waitFor();
+    assert.equal(await page.getByLabel('聊天消息').isDisabled(), true);
+    releaseReply();
+    await page.getByText('模拟回复：我听着，慢慢说。', { exact: true }).waitFor();
+    assert.equal(replyCalls, 1);
+    await page.reload();
+    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    await page.getByText('模拟回复：我听着，慢慢说。', { exact: true }).waitFor();
+    assert.equal(replyCalls, 1, 'reload must not generate again');
+    replyFailure = true;
+    await page.getByLabel('聊天消息').fill('失败测试');
+    await page.getByRole('button', { name: '发送', exact: true }).click();
+    await page.getByRole('button', { name: '重新尝试回复', exact: true }).waitFor();
+    assert.equal(replyCalls, 2);
+    replyFailure = false;
+    await page.getByRole('button', { name: '重新尝试回复', exact: true }).click();
+    await page.getByText('模拟回复：我听着，慢慢说。', { exact: true }).nth(1).waitFor();
+    assert.equal(replyCalls, 3);
+    assert.deepEqual(errors, []);
+    await page.screenshot({ path: '.local/screenshots/react-ai-fixture.png' });
     console.log(
-      'PASS: live health UI; simulated unavailable UI; fixture retry request ID, history rendering, navigation, tabs, narrow layout; zero page errors. Fixtures do not verify MySQL.',
+      'PASS: live health UI; simulated unavailable UI; fixture save retry, AI typing/reply/retry/reload, navigation and narrow layout; zero page errors. AI is mocked; no paid calls.',
     );
   } finally {
     await browser.close();

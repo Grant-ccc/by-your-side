@@ -23,6 +23,13 @@ const assert = require('node:assert/strict');
         : { channel: 'msedge' }),
     });
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    // Disable only the advertised AI capability in this browser test. Storage stays real,
+    // and the test remains free even after the owner configures a real provider key.
+    await page.route('**/health', async (route) => {
+      const response = await route.fetch();
+      const status = await response.json();
+      await route.fulfill({ response, json: { ...status, ai: 'not-configured' } });
+    });
     const errors = [];
     page.on('pageerror', (error) => errors.push(error.message));
     await page.goto('http://127.0.0.1:17400');
@@ -39,7 +46,7 @@ const assert = require('node:assert/strict');
     assert.equal(response.status(), 201);
     assert.equal(saved.text, text);
     assert.equal(saved.role, 'user');
-    assert.equal(payload.ai, 'not-configured');
+    assert.ok(['not-configured', 'configured'].includes(payload.ai));
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
     await page.getByText(text, { exact: true }).waitFor();

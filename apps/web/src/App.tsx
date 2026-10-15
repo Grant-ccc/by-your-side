@@ -5,8 +5,18 @@ import {
   type Message,
   type SendMessage,
   type ServiceHealth,
+  type AiInfo,
+  type ReplyResult,
 } from '@bys/shared';
-import { bootstrap, health, loadHistory, sendMessage } from './api';
+import {
+  bootstrap,
+  health,
+  loadHistory,
+  sendMessage,
+  aiInfo,
+  generateReply,
+  replyStatus,
+} from './api';
 import './development.css';
 
 type Page = 'home' | 'chat' | 'album' | 'settings' | 'memory' | 'trip';
@@ -126,6 +136,11 @@ function readOutbox(conversationId: string): SendMessage | null {
 }
 
 export function App() {
+  const [ai, setAi] = useState<AiInfo | null>(null);
+  const [reply, setReply] = useState<ReplyResult | null>(null);
+  const [replying, setReplying] = useState(false);
+  const [replyError, setReplyError] = useState('');
+  const replyRef = useRef(false);
   const [page, setPage] = useState<Page>('home'),
     [tab, setTab] = useState<Tab>('日常记录');
   const [service, setService] = useState<ServiceHealth | null>(null),
@@ -167,6 +182,19 @@ export function App() {
       setConversations(list);
       setConversationId(selected.id);
       setMessages(data);
+      setReply(null);
+      setReplyError('');
+      // Read-only: refreshing must never start a paid generation.
+      if (status.ai === 'configured') {
+        const info = await aiInfo();
+        if (epoch !== requestEpoch.current) return;
+        setAi(info);
+        const last = data.filter((m) => m.role === 'user').at(-1);
+        if (last && !data.some((m) => m.replyToMessageId === last.id)) {
+          const state = await replyStatus(selected.id, last.id);
+          if (epoch === requestEpoch.current) setReply(state);
+        }
+      } else setAi(null);
       const pending = readOutbox(selected.id);
       if (pending && data.some((m) => m.clientRequestId === pending.clientRequestId)) {
         sessionStorage.removeItem(`bys:outbox:${selected.id}`);
@@ -190,9 +218,37 @@ export function App() {
   useEffect(() => {
     if (page === 'chat')
       historyRef.current?.scrollTo({ top: historyRef.current.scrollHeight, behavior: 'smooth' });
-  }, [messages, outbox, page, sending]);
+  }, [messages, outbox, page, sending, replying]);
+  async function askForReply(messageId: string, retry = false, checkOnly = false) {
+    if (replyRef.current || !conversationId) return;
+    replyRef.current = true;
+    setReplying(true);
+    setReplyError('');
+    try {
+      const result = checkOnly
+        ? await replyStatus(conversationId, messageId)
+        : await generateReply(conversationId, messageId, retry);
+      setReply(result);
+      if (result.message) {
+        const saved = result.message;
+        setMessages((old) =>
+          old.some((m) => m.id === saved.id)
+            ? old
+            : [...old, saved].sort((a, b) => a.sequence - b.sequence),
+        );
+      }
+      void aiInfo()
+        .then(setAi)
+        .catch(() => {});
+    } catch (error) {
+      setReplyError(error instanceof Error ? error.message : '回复结果尚未确认，请先检查记录。');
+    } finally {
+      replyRef.current = false;
+      setReplying(false);
+    }
+  }
   async function save(input: SendMessage) {
-    if (!conversationId || sendingRef.current) return;
+    if (!conversationId || sendingRef.current || replyRef.current) return;
     sendingRef.current = true;
     setSending(true);
     setSendError('');
@@ -204,12 +260,8 @@ export function App() {
       sessionStorage.removeItem(`bys:outbox:${conversationId}`);
       setOutbox(null);
       setDraft('');
-      setService({
-        status: 'ok',
-        database: 'connected',
-        ai: 'not-configured',
-        mode: 'local-development',
-      });
+      setReply(null);
+      if (service?.ai === 'configured') await askForReply(saved.id);
     } catch (error) {
       setSendError(error instanceof Error ? error.message : '保存结果尚未确认，请重试。');
     } finally {
@@ -230,10 +282,13 @@ export function App() {
     void save(parsed.data);
   }
   const connected = service?.database === 'connected' && !loadError;
+  const aiEnabled = service?.ai === 'configured';
+  const lastUser = messages.filter((m) => m.role === 'user').at(-1);
+  const needsReply = lastUser && !messages.some((m) => m.replyToMessageId === lastUser.id);
   const statusText = loading
     ? '正在连接本地服务'
     : connected
-      ? 'MySQL 已连接 · AI 待接入'
+      ? `MySQL 已连接 · ${aiEnabled ? '千问已配置' : 'AI 待配置密钥'}`
       : '数据库尚未就绪';
   const go = (next: Page) => {
     setPage(next);
@@ -401,7 +456,14 @@ export function App() {
   function chat() {
     return (
       <>
-        {header('李泽言', '消息可以保存，真实 AI 回复尚未接入')}
+        {header(
+          '李泽言',
+          replying
+            ? '正在输入…'
+            : aiEnabled
+              ? '留一点时间，说说今天的事'
+              : '消息已可保存 · 等待配置模型密钥',
+        )}
         <div className="chat-banner">
           <strong>
             {loading
@@ -410,7 +472,12 @@ export function App() {
                 ? '本地消息存储已连接'
                 : '暂时不能读取或保存消息'}
           </strong>
-          <small>{loadError || '当前不会生成固定台词冒充 AI 回复。'}</small>
+          <small>
+            {loadError ||
+              (aiEnabled
+                ? 'AI 生成回复 · 暂未启用作息延迟与主动留言'
+                : '在本机配置百炼密钥后，可启用真实回复。')}
+          </small>
           {!connected && !loading && (
             <button className="text-button" onClick={() => void refresh()}>
               重新连接 →
@@ -426,7 +493,7 @@ export function App() {
               <p>
                 消息保存后，重新打开也能找回来。
                 <br />
-                下一阶段，再接上真实的回应。
+                {aiEnabled ? '想说什么，就从这里开始。' : '模型接入已准备好，等待本机配置密钥。'}
               </p>
             </div>
           )}
@@ -445,6 +512,40 @@ export function App() {
               </div>
             </div>
           ))}
+          {replying && (
+            <div className="message him">
+              <Avatar />
+              <div className="bubble" role="status">
+                正在输入…
+              </div>
+            </div>
+          )}
+          {aiEnabled && needsReply && !replying && (
+            <div className="reply-control">
+              <p role="status">
+                {replyError ||
+                  reply?.error?.message ||
+                  (reply?.state === 'running'
+                    ? '回复结果待确认，请检查记录。'
+                    : '这条消息尚未收到回复。')}
+              </p>
+              {(!reply || reply.state === 'idle') && !replyError && (
+                <button className="pill" onClick={() => void askForReply(lastUser.id)}>
+                  让他回复
+                </button>
+              )}
+              {(reply?.state === 'running' || !!replyError) && (
+                <button className="pill" onClick={() => void askForReply(lastUser.id, false, true)}>
+                  检查回复结果
+                </button>
+              )}
+              {reply?.state === 'failed' && reply.error?.retryable && (
+                <button className="pill" onClick={() => void askForReply(lastUser.id, true)}>
+                  重新尝试回复
+                </button>
+              )}
+            </div>
+          )}
           {outbox && !messages.some((m) => m.clientRequestId === outbox.clientRequestId) && (
             <div className="message you">
               <Avatar you />
@@ -474,10 +575,13 @@ export function App() {
             onChange={(e) => setDraft(e.target.value)}
             placeholder={outbox ? '先确认上一条消息的保存结果' : '想和他说点什么…'}
             maxLength={2000}
-            disabled={!connected || !!outbox || sending}
+            disabled={!connected || !!outbox || sending || replying}
           />
-          <button className="primary" disabled={!connected || !!outbox || sending || !draft.trim()}>
-            保存消息
+          <button
+            className="primary"
+            disabled={!connected || !!outbox || sending || replying || !draft.trim()}
+          >
+            {aiEnabled ? '发送' : '保存消息'}
           </button>
         </form>
       </>
@@ -498,7 +602,7 @@ export function App() {
             {loadError && <p className="connection-error">{loadError}</p>}
             <button
               className="secondary full section-gap"
-              disabled={loading || sending}
+              disabled={loading || sending || replying}
               onClick={() => void refresh()}
             >
               重新连接与读取历史
@@ -520,8 +624,31 @@ export function App() {
             </p>
           </section>
           <section className="settings-group">
+            <h3>文字模型</h3>
+            <p className="muted">
+              千问 Qwen3.7-Plus · 非思考模式
+              <br />
+              {aiEnabled
+                ? '密钥已配置，实际可用性以调用结果为准。'
+                : '等待在本机 .env.local 配置 DASHSCOPE_API_KEY 和北京业务空间 ID。'}
+            </p>
+            {ai?.budget && (
+              <p className="muted">
+                本月文字调用：约 ¥{ai.budget.spent.toFixed(4)} / ¥{ai.budget.limit.toFixed(2)}
+                <br />
+                进行中预留：¥{ai.budget.reserved.toFixed(4)}
+                。未知结果可能按上限计入；实际账单以百炼为准。此额度不含图片与服务器。
+              </p>
+            )}
+            <p className="soft-note">
+              启用 AI
+              后，角色设定和最近一段对话会发送给百炼生成回复。密钥仅在后端读取，不会返回页面或上传
+              GitHub。
+            </p>
+          </section>
+          <section className="settings-group">
             <h3>接下来的能力</h3>
-            <p className="muted">AI 回复、记忆提取、日程调度、通知、图片生成与数据备份仍待接入。</p>
+            <p className="muted">记忆提取、日程调度、通知、图片生成与数据备份仍待接入。</p>
             <button className="secondary full section-gap" onClick={() => go('memory')}>
               查看记忆模块进度
             </button>
@@ -531,7 +658,7 @@ export function App() {
             <p className="muted">
               {conversations[0]?.title || '连接数据库后建立本地会话'}
               <br />
-              消息只向当前本地开发服务保存，不会上传到 GitHub。
+              聊天记录保存在本地数据库，不会上传 GitHub；启用模型后，必要上下文会发送给百炼。
             </p>
           </section>
         </div>
@@ -586,22 +713,22 @@ export function App() {
           <p>{statusText}</p>
           <button
             className="text-button"
-            disabled={loading || sending}
+            disabled={loading || sending || replying}
             onClick={() => void refresh()}
           >
             重新检查连接 →
           </button>
         </div>
         <p className="studio-note">
-          真实消息存储 · 未接入 AI
+          真实消息存储 · {aiEnabled ? '千问已配置' : 'AI 等待密钥'}
           <br />
-          旧交互原型仍保留，不产生付费调用。
+          {aiEnabled ? '生成回复按实际用量计费。' : '未配置密钥时不会发起付费调用。'}
         </p>
       </aside>
       <main className="phone" aria-label="手机开发版">
         <div className="statusbar">
           <span>在你身边</span>
-          <span className="demo-label">开发版 · AI 待接入</span>
+          <span className="demo-label">开发版 · {aiEnabled ? '千问聊天' : 'AI 待配置'}</span>
           <span className="signal">♥</span>
         </div>
         <div id="screen">

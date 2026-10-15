@@ -45,6 +45,7 @@ function message(row: RowDataPacket): Message {
     text: row.text,
     status: row.status,
     createdAt: date(row.created_at),
+    replyToMessageId: row.reply_to_message_id ?? null,
   };
 }
 
@@ -52,6 +53,8 @@ export class MysqlChatStore implements ChatStore {
   constructor(public pool: Pool = mysql.createPool(getConfig().database)) {}
   async ready() {
     await this.pool.query('SELECT id FROM conversations LIMIT 0');
+    await this.pool.query('SELECT reply_to_message_id FROM messages LIMIT 0');
+    await this.pool.query('SELECT source_message_id,budget_period_id FROM generation_runs LIMIT 0');
   }
   async bootstrap() {
     const connection = await this.pool.getConnection();

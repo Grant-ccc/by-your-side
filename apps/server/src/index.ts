@@ -1,8 +1,13 @@
 import { buildApp } from './app.js';
 import { getConfig } from './config.js';
 import { MysqlChatStore } from './store.js';
+import { aiConfig, QwenProvider } from './ai-provider.js';
+import { MysqlChatAi } from './ai-chat.js';
 const config = getConfig();
-const app = buildApp(new MysqlChatStore(), {
+const store = new MysqlChatStore();
+const modelConfig = aiConfig();
+const app = buildApp(store, {
+  ai: new MysqlChatAi(store.pool, modelConfig, new QwenProvider(modelConfig)),
   port: config.port,
   webPort: config.webPort,
   logger: true,

@@ -2,17 +2,20 @@
 
 [返回首页](Home.md)
 
-状态：部分本机开发 API 已实现；不是公开上线服务。后端默认 `127.0.0.1:17401`，React 默认 `127.0.0.1:17400`。数据库未就绪时返回 503，不进行内存存储降级。AI 尚未接入。
+状态：本机存储与文字回复 API 已实现；不是公开上线服务。后端默认 `127.0.0.1:17401`，React 默认 `127.0.0.1:17400`。数据库未就绪时返回 503，不进行内存存储降级。千问适配已实现，真实调用待密钥验收。
 
 ## 已实现的本地接口
 
-- `GET /health`：数据库连通与迁移表结构就绪检查，明确返回 AI 未配置。
+- `GET /health`：数据库连通检查，AI 返回 `configured` 或 `not-configured`；已配置不代表真实调用成功。
+- `GET /api/ai`：返回模型名称、配置状态、月度文字预算与预留；不返回密钥。
+- `GET /api/conversations/:id/messages/:messageId/reply`：读取用户消息对应的回复状态，不生成、不扣费。
+- `POST /api/conversations/:id/messages/:messageId/reply`：请求回复；可选 `{ retry: true }` 仅重试明确可恢复的失败。检查归属、并发锁、已有结果和预算。未知结果不自动重发。
 - `GET /api/bootstrap`：幂等建立固定本地开发身份、角色关系和初始会话；仅本机使用。
 - `GET /api/conversations`、`POST /api/conversations`：本地关系下的会话读取与新增。
 - `GET /api/conversations/:id/messages?after=0&limit=50`：游标分页，校验资源归属与分页范围。
 - `POST /api/conversations/:id/messages`：使用 `clientRequestId` 与 `text`；首次 201、同内容重复请求 200、标识冲突内容 409。保存后不伪装为角色已读或已回复。
 
-请求使用 Zod 运行时校验。客户端请求结果不确定时保留同一标识重试；数据库约束与事务负责去重。接口单元检查与 CI MySQL 真库存储验证已通过，本机数据库仍待恢复。以下原规划仍有未实现部分。
+请求使用 Zod 运行时校验。客户端保存结果不确定时保留同一标识重试；数据库约束与事务负责去重。本机 MySQL 已恢复。模型 HTTP、回复/费用事务与页面流程使用模拟模型验证，真实模型需另行验收。以下原规划仍有未实现部分。
 
 ## 基本约定
 

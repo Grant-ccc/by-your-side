@@ -4,6 +4,8 @@ import { randomUUID } from 'node:crypto';
 import type { Conversation, Message, SendMessage } from '@bys/shared';
 import { buildApp } from '../src/app.js';
 import { StoreError, type ChatStore } from '../src/store.js';
+import { AiError } from '../src/ai-provider.js';
+import type { ChatAi } from '../src/ai-chat.js';
 
 // Deliberately test-only. Production never switches to this store if MySQL fails.
 class TestStore implements ChatStore {
@@ -217,6 +219,50 @@ test('bootstrap and conversation creation have an explicit AI-disabled capabilit
     });
     assert.equal(created.statusCode, 201);
     assert.equal(created.json().conversation.title, '新会话');
+  } finally {
+    await app.close();
+  }
+});
+
+test('AI routes validate IDs and retry flags, read status without generating, and sanitize typed failures', async () => {
+  const store = new TestStore();
+  let calls = 0;
+  const ai: ChatAi = {
+    configured: true,
+    async budget() {
+      return { limit: 20, spent: 0, reserved: 0, currency: 'CNY' };
+    },
+    async status() {
+      return { state: 'idle' };
+    },
+    async reply(_id, _source, retry) {
+      calls++;
+      if (retry) throw new AiError('AI_BUDGET_EXCEEDED', '本月预算不足', 409);
+      return { state: 'running' };
+    },
+  };
+  const app = buildApp(store, { ai });
+  const url = `/api/conversations/${store.id}/messages/${randomUUID()}/reply`;
+  try {
+    assert.equal((await app.inject({ url: '/health' })).json().ai, 'configured');
+    assert.equal((await app.inject({ url: '/api/ai' })).json().budget.limit, 20);
+    assert.equal((await app.inject({ url })).json().state, 'idle');
+    assert.equal(calls, 0);
+    assert.equal(
+      (await app.inject({ method: 'POST', url, payload: { retry: false, apiKey: 'forbidden' } }))
+        .statusCode,
+      400,
+    );
+    assert.equal(
+      (await app.inject({ method: 'POST', url: url.replace(store.id, 'invalid'), payload: {} }))
+        .statusCode,
+      400,
+    );
+    assert.equal(calls, 0);
+    assert.equal((await app.inject({ method: 'POST', url, payload: {} })).json().state, 'running');
+    const denied = await app.inject({ method: 'POST', url, payload: { retry: true } });
+    assert.equal(denied.statusCode, 409);
+    assert.equal(denied.json().error.code, 'AI_BUDGET_EXCEEDED');
   } finally {
     await app.close();
   }

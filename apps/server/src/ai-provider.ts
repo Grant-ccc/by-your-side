@@ -57,7 +57,7 @@ export function context(turns: ChatTurn[], now = new Date()): ChatTurn[] {
   return [
     {
       role: 'system',
-      content: `${CHARACTER_PROMPT}\n当前北京时间：${now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}。`,
+      content: `${CHARACTER_PROMPT}\n当前北京时间：${now.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false })}。\n本次可引用的角色日程与外出事件：无。角色兴趣和背景不等于某件事已经发生。接下来若要主动换话题，请谈一个当下看法、偏好或假设的共同活动；不讲“今天/前几天/刚刚去过、做过、遇到过”的新经历。不必向用户解释这条内部状态。`,
     },
     ...selected,
   ];

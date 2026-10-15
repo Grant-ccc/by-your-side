@@ -92,7 +92,7 @@ export function buildApp(
   app.get('/api/conversations', async () => ({ conversations: await store.conversations() }));
   app.get('/api/ai', async () => ({
     configured: options.ai?.configured ?? false,
-    model: 'qwen3.7-plus',
+    model: 'deepseek-flash',
     budget: options.ai ? await options.ai.budget() : null,
   }));
   for (const method of ['GET', 'POST'] as const) {

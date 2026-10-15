@@ -288,7 +288,7 @@ export function App() {
   const statusText = loading
     ? '正在连接本地服务'
     : connected
-      ? `MySQL 已连接 · ${aiEnabled ? '千问已配置' : 'AI 待配置密钥'}`
+      ? `MySQL 已连接 · ${aiEnabled ? 'DeepSeek已配置' : 'AI 待配置密钥'}`
       : '数据库尚未就绪';
   const go = (next: Page) => {
     setPage(next);
@@ -476,7 +476,7 @@ export function App() {
             {loadError ||
               (aiEnabled
                 ? 'AI 生成回复 · 暂未启用作息延迟与主动留言'
-                : '在本机配置百炼密钥后，可启用真实回复。')}
+                : '在本机配置DeepSeek密钥后，可启用真实回复。')}
           </small>
           {!connected && !loading && (
             <button className="text-button" onClick={() => void refresh()}>
@@ -626,24 +626,23 @@ export function App() {
           <section className="settings-group">
             <h3>文字模型</h3>
             <p className="muted">
-              千问 Qwen3.7-Plus · 非思考模式
+              DeepSeek Flash · 非思考模式
               <br />
               {aiEnabled
                 ? '密钥已配置，实际可用性以调用结果为准。'
-                : '等待在本机 .env.local 配置 DASHSCOPE_API_KEY 和北京业务空间 ID。'}
+                : '等待在本机 .env.local 配置 DEEPSEEK_API_KEY。'}
             </p>
             {ai?.budget && (
               <p className="muted">
                 本月文字调用：约 ¥{ai.budget.spent.toFixed(4)} / ¥{ai.budget.limit.toFixed(2)}
                 <br />
                 进行中预留：¥{ai.budget.reserved.toFixed(4)}
-                。未知结果可能按上限计入；实际账单以百炼为准。此额度不含图片与服务器。
+                。按高峰无缓存价格保守估算；实际账单以 DeepSeek 为准。此额度不含图片与服务器。
               </p>
             )}
             <p className="soft-note">
-              启用 AI
-              后，角色设定和最近一段对话会发送给百炼生成回复。密钥仅在后端读取，不会返回页面或上传
-              GitHub。
+              启用 AI 后，角色设定和最近一段对话会发送给 DeepSeek
+              生成回复。密钥仅在后端读取，不会返回页面或上传 GitHub。
             </p>
           </section>
           <section className="settings-group">
@@ -658,7 +657,7 @@ export function App() {
             <p className="muted">
               {conversations[0]?.title || '连接数据库后建立本地会话'}
               <br />
-              聊天记录保存在本地数据库，不会上传 GitHub；启用模型后，必要上下文会发送给百炼。
+              聊天记录保存在本地数据库，不会上传 GitHub；启用模型后，必要上下文会发送给DeepSeek。
             </p>
           </section>
         </div>
@@ -720,7 +719,7 @@ export function App() {
           </button>
         </div>
         <p className="studio-note">
-          真实消息存储 · {aiEnabled ? '千问已配置' : 'AI 等待密钥'}
+          真实消息存储 · {aiEnabled ? 'DeepSeek已配置' : 'AI 等待密钥'}
           <br />
           {aiEnabled ? '生成回复按实际用量计费。' : '未配置密钥时不会发起付费调用。'}
         </p>
@@ -728,7 +727,7 @@ export function App() {
       <main className="phone" aria-label="手机开发版">
         <div className="statusbar">
           <span>在你身边</span>
-          <span className="demo-label">开发版 · {aiEnabled ? '千问聊天' : 'AI 待配置'}</span>
+          <span className="demo-label">开发版 · {aiEnabled ? 'DeepSeek聊天' : 'AI 待配置'}</span>
           <span className="signal">♥</span>
         </div>
         <div id="screen">

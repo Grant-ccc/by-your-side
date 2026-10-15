@@ -18,13 +18,10 @@ export interface AiConfig {
   monthlyLimit: number;
 }
 export function aiConfig(): AiConfig {
-  const workspace = process.env.DASHSCOPE_WORKSPACE_ID?.trim();
-  const baseUrl = (
-    process.env.AI_BASE_URL?.trim() ||
-    (workspace
-      ? `https://${workspace}.cn-beijing.maas.aliyuncs.com/compatible-mode/v1`
-      : 'https://dashscope.aliyuncs.com/compatible-mode/v1')
-  ).replace(/\/$/, '');
+  const baseUrl = (process.env.AI_BASE_URL?.trim() || 'https://api.deepseek.com').replace(
+    /\/$/,
+    '',
+  );
   const url = new URL(baseUrl);
   if (
     url.protocol !== 'https:' ||
@@ -33,19 +30,16 @@ export function aiConfig(): AiConfig {
     url.port ||
     url.search ||
     url.hash ||
-    !(
-      url.hostname === 'dashscope.aliyuncs.com' ||
-      /^[a-zA-Z0-9-]+\.cn-beijing\.maas\.aliyuncs\.com$/.test(url.hostname)
-    ) ||
-    url.pathname !== '/compatible-mode/v1'
+    url.hostname !== 'api.deepseek.com' ||
+    !['/', '/v1'].includes(url.pathname)
   )
-    throw new Error('AI_BASE_URL must be an official Beijing endpoint');
-  const model = process.env.AI_MODEL || 'qwen3.7-plus';
-  if (model !== 'qwen3.7-plus') throw new Error('This cost policy supports qwen3.7-plus only');
+    throw new Error('AI_BASE_URL must be an official DeepSeek endpoint');
+  const model = process.env.AI_MODEL || 'deepseek-flash';
+  if (model !== 'deepseek-flash') throw new Error('This cost policy supports deepseek-flash only');
   const monthlyLimit = Number(process.env.AI_MONTHLY_LIMIT_CNY || 20);
   if (!Number.isFinite(monthlyLimit) || monthlyLimit <= 0 || monthlyLimit > 50)
     throw new Error('AI_MONTHLY_LIMIT_CNY must be greater than zero and at most 50');
-  return { key: process.env.DASHSCOPE_API_KEY?.trim() || '', baseUrl, model, monthlyLimit };
+  return { key: process.env.DEEPSEEK_API_KEY?.trim() || '', baseUrl, model, monthlyLimit };
 }
 export const MAX_OUTPUT = 512;
 export function context(turns: ChatTurn[], now = new Date()): ChatTurn[] {
@@ -91,7 +85,7 @@ export interface AiProvider {
     turns: ChatTurn[],
   ): Promise<{ text: string; promptTokens: number; completionTokens: number }>;
 }
-export class QwenProvider implements AiProvider {
+export class DeepSeekProvider implements AiProvider {
   constructor(
     private config: AiConfig,
     private fetcher: typeof fetch = fetch,
@@ -108,8 +102,8 @@ export class QwenProvider implements AiProvider {
           model: this.config.model,
           messages: turns,
           stream: false,
-          enable_thinking: false,
-          max_completion_tokens: MAX_OUTPUT,
+          thinking: { type: 'disabled' },
+          max_tokens: MAX_OUTPUT,
         }),
       });
     } catch {
@@ -120,12 +114,12 @@ export class QwenProvider implements AiProvider {
     }
     if (!response.ok) {
       // Never return or log provider bodies, which may contain request data or credentials.
-      if ([400, 401, 403, 404, 429].includes(response.status))
+      if ([400, 401, 402, 403, 404, 429].includes(response.status))
         throw new AiError(
           response.status === 429 ? 'AI_RATE_LIMIT' : 'AI_CONFIG_ERROR',
           response.status === 429
             ? '模型暂时繁忙，请稍后手动重试。'
-            : '模型配置或账户状态需要检查，请在本机核对密钥、地域和额度。',
+            : '模型配置或账户状态需要检查，请在本机核对 DeepSeek 密钥和账户余额。',
         );
       throw new AiError('AI_UNCERTAIN', '模型服务暂时异常，调用结果尚不确定，不会自动重试。');
     }

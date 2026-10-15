@@ -4,7 +4,7 @@
 
 状态：基础迁移 `001_initial.sql` 包含 users、characters、relationships、conversations、messages、budget_periods、generation_runs 七张表。本机与 CI MySQL 已验证基础存储；`002_ai_chat.sql` 新增回复关联、生成尝试、预算期间关联、Token 用量与失败码，本机模拟模型真库测试已通过。其余实体仍为草案。
 
-当前生成记录以来源用户消息与尝试次数唯一，助手消息以 `reply_to_message_id` 唯一。费用成功结算与回复插入在一个事务中；未知结果保守计入费用，进程中断时保留预留和运行状态，详见[千问聊天配置](AI-Setup.md)。下表中批次等字段仍是目标设计，不等同于当前 SQL。
+当前生成记录以来源用户消息与尝试次数唯一，助手消息以 `reply_to_message_id` 唯一。费用成功结算与回复插入在一个事务中；未知结果保守计入费用，进程中断时保留预留和运行状态，详见[DeepSeek 聊天配置](AI-Setup.md)。下表中批次等字段仍是目标设计，不等同于当前 SQL。
 
 ## 建模约定
 

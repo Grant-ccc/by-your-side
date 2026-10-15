@@ -146,7 +146,7 @@ const { randomUUID } = require('node:crypto');
       route.fulfill({
         json: {
           configured: true,
-          model: 'qwen3.7-plus',
+          model: 'deepseek-flash',
           budget: { limit: 20, spent: 0.001, reserved: 0, currency: 'CNY' },
         },
       }),

@@ -26,8 +26,8 @@ test(
     const ids: string[] = [];
     const config: AiConfig = {
       key: 'fixture-not-real',
-      baseUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-      model: 'qwen3.7-plus',
+      baseUrl: 'https://api.deepseek.com',
+      model: 'deepseek-flash',
       monthlyLimit: 0.08,
     };
     let calls = 0,

@@ -23,6 +23,8 @@ export interface ChatAi {
   budget(): Promise<{ limit: number; spent: number; reserved: number; currency: string }>;
 }
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
+// DeepSeek Flash peak, cache-miss rates (CNY/million tokens). This intentionally
+// overestimates discounted/off-peak/cached requests; it is not the provider invoice.
 const cost = (input: number, output: number) => (input * 2 + output * 8) / 1e6;
 function period() {
   const parts = new Intl.DateTimeFormat('en', {
@@ -53,10 +55,10 @@ function failed(code: string): ReplyResult {
       retryable: code !== 'AI_UNCERTAIN',
       message:
         code === 'AI_UNCERTAIN'
-          ? '调用结果尚不确定，可能已计费。不会自动重试；请先核对百炼账单。'
+          ? '调用结果尚不确定，可能已计费。不会自动重试；请先核对DeepSeek 账单。'
           : code === 'AI_RATE_LIMIT'
             ? '模型暂时繁忙，可以稍后手动重试。'
-            : '请核对本机模型配置、密钥地域和账户额度，再手动重试。',
+            : '请核对本机模型配置、密钥和账户余额，再手动重试。',
     },
   };
 }

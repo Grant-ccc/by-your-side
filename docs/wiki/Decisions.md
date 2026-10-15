@@ -21,7 +21,7 @@
 
 ## 当前规划，尚需工程验证
 
-本轮已实现 Node.js + TypeScript + Fastify 后端骨架、React + Vite、mysql2 访问与版本化 SQL；初期不引入 ORM 或全局状态库。依赖和锁文件已提交。Capacitor、持久任务、文件存储、记忆检索与生产部署仍为后续规划。
+本轮已实现 Node.js + TypeScript + Fastify 后端骨架、React + Vite、mysql2 访问与版本化 SQL；初期不引入 ORM 或全局状态库。依赖和锁文件已提交。Capacitor 8.4.3 与 HTTPS 配对传输已实现并构建，真机验证待完成；持久任务、文件存储、记忆检索与生产部署仍为后续规划。
 
 ## 下一阶段要决定
 

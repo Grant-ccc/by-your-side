@@ -12,7 +12,7 @@
 
 设备凭据保存在应用私有偏好中，不回传给网页代码，并排除系统云备份和设备迁移；不宣称已实现硬件密钥库加密。证书、私钥和配对配置保存在电脑的忽略目录 `.local/lan/`。这不是多人登录体系，不能作为公开服务部署。
 
-当前已建立安卓工程、设置页、原生传输插件与构建工作流。电脑端真实 HTTPS、证书指纹拒绝、错误/缺少凭据拒绝、MySQL 保存读取及去重已通过。**安卓构建、Java 单元检查及真机安装结果分别记录，不把电脑端检查当成真机通过。** 本页后续将更新实际构建结果。
+当前已建立安卓工程、设置页、原生传输插件与构建工作流。电脑端真实 HTTPS、证书指纹拒绝、错误/缺少凭据拒绝、MySQL 保存读取及去重已通过。**安卓构建、Java 单元检查及真机安装结果分别记录，不把电脑端检查当成真机通过。** [首次构建记录](https://github.com/Grant-ccc/by-your-side/actions/runs/38768492348)已通过 Java 单元检查与 APK 编译。配对页面另经模拟安卓桥验证：无配置、无效配置、错误凭据、成功保存、重开读取及 TLS 失败提示均通过；这仍不等于真机运行通过。
 
 ## 电脑准备
 
@@ -78,8 +78,10 @@ GitHub Actions 的 `Android trial APK` 工作流执行前端构建、Capacitor �
 | 方案与代码 | 已实现待真机验证 | HTTPS、配对指纹、凭据校验与安卓设置页 |
 | 无凭据/错误凭据不能读写 | 电脑检查通过 | 接口测试与真实 HTTPS 检查 |
 | 证书校验和消息持久化 | 电脑检查通过 | `test:lan`，不调用模型 |
-| Java 检查与 APK 编译 | 待工作流结果 | 分别核对检查与安装包制品 |
+| Java 检查与 APK 编译 | GitHub Actions 通过 | [修正版构建](https://github.com/Grant-ccc/by-your-side/actions/runs/38770819327)，制品摘要已核对 |
 | 手机安装、连接、重开读取 | 待用户真机操作 | 属于 T01—T03，不能提前标记通过 |
 | 最新回复重生成、导出/恢复 | 未实现 | 后续 S3，不属于本轮新增功能 |
 
 官方参考：[Capacitor 安卓环境](https://capacitorjs.com/docs/getting-started/environment-setup)、[自定义原生插件](https://capacitorjs.com/docs/android/custom-code)、[Android TLS](https://developer.android.com/privacy-and-security/security-ssl)。
+
+本轮交付修正版源码 `a2f63fc`；APK SHA-256 为 `e27d588140d2a75ea60ee9c3e8ece3e2452f3d9bc3d6bb44a3e4cdb33d40828d`。仅记录构建产物，不记录配对配置或私人聊天。

@@ -1,6 +1,6 @@
 # 在你身边 · by-your-side
 
-李泽言主题的个人安卓陪伴 App 项目。已有交互原型、React + TypeScript 前端、Fastify + TypeScript 后端与 MySQL 消息存储。已实现 DeepSeek 文字适配与回复/费用持久化，首次真实调用、历史读取与重复请求去重已验证，人物语气仍待持续校准；云端通知与安卓安装包尚未实现。
+李泽言主题的个人安卓陪伴 App 项目。已有交互原型、React + TypeScript 前端、Fastify + TypeScript 后端与 MySQL 消息存储。已实现 DeepSeek 文字适配与回复/费用持久化，首次真实调用、历史读取与重复请求去重已验证，人物语气仍待持续校准；安卓试连 APK 已构建，真机安装与连接待验证；云端通知尚未实现。
 
 近期交付收缩为 **[v0.1 手机聊天试用版](docs/wiki/Trial-Scope.md)**：同一 Wi-Fi、电脑运行后端，先交付安卓聊天、历史、最新回复重生成与基本数据/费用保护；记忆、日程、主动通知和图片延后。范围、未实现项及 T01—T09 验收以该页为准。
 
@@ -8,7 +8,7 @@
 
 [进入项目文档](docs/wiki/Home.md)：产品范围、技术架构、开发路线、MySQL 数据模型、接口草案、开发交付、通知与成本、决策记录。
 
-正式工程采用 **React + TypeScript + MySQL**，后端为 Node.js + Fastify，数据库驱动为 mysql2，迁移使用版本化 SQL。Capacitor 安卓打包仍待实现。现有 `原型/` 保留完整交互参考；新开发版先迁移主页和聊天，不代表其他模块均已接入后端。
+正式工程采用 **React + TypeScript + MySQL**，后端为 Node.js + Fastify，数据库驱动为 mysql2，迁移使用版本化 SQL。Capacitor 8.4.3 安卓工程已建立，见[安装与配对说明](docs/wiki/Android-LAN.md)。现有 `原型/` 保留完整交互参考；新开发版先迁移主页和聊天，不代表其他模块均已接入后端。
 
 `docs/wiki/` 为版本化文档源，准备同步至 [GitHub Wiki](https://github.com/Grant-ccc/by-your-side/wiki)。Wiki 必须先在 GitHub 网页初始化第一篇页面，随后可运行 `python scripts/sync_wiki.py --publish` 发布；`python scripts/sync_wiki.py` 只检查和导出本地文档。
 
@@ -91,6 +91,6 @@ npm run test:prototype
 
 ## 后续方向
 
-优先确定安卓局域网连接与访问保护方案，验证最小真机连接，再补齐小版本验收项。完整需求保留，美术与其他模块延后；原型效果不代表后台功能已实现。
+安卓 HTTPS 配对与构建检查已通过，接下来验证最小真机连接，再补齐小版本验收项。完整需求保留，美术与其他模块延后；原型效果不代表后台功能已实现。
 
 角色来自《恋与制作人》，本项目为个人非官方原型；不包含游戏安装包、完整剧情库或官方美术资源，不对第三方角色主张所有权。

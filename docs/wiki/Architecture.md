@@ -12,7 +12,7 @@
 | 后端 | Node.js + TypeScript + Fastify | 本地 API 与接口测试已实现 |
 | 关系数据库 | MySQL 8.4、mysql2、版本化 SQL | CI 与本机真库迁移/存储检查通过 |
 | 图片 | 独立文件存储，MySQL 保存元数据与关联 | 规划原则 |
-| AI | DeepSeek 官方 Flash 服务端文字适配 | 已实现，真实模型待密钥验证；图片未接入 |
+| AI | DeepSeek 官方 Flash 服务端文字适配 | 首次真实调用与存储去重已验证；人物语气待校准，图片未接入 |
 | 任务 | 数据库保存到期任务，后台调度执行 | 初期设计 |
 
 本轮选择 Fastify 与 mysql2，不引入 ORM；初期采用 React 自带状态机制。版本写入 package.json 与 package-lock.json。数据库运行配置、代码已存在与真库验证通过是三个不同状态，不能混写。托管和身份验证尚未实施。

@@ -12,4 +12,4 @@
 
 ## 当前项目状态
 
-已保留可点击网页原型，并新增 React + TypeScript 前端、Fastify + TypeScript 后端、MySQL 迁移与消息存储接口。本机 Docker 已恢复，真实数据库与浏览器存储已验证。DeepSeek文字适配、回复持久化、费用预留与去重已实现并使用模拟模型验证，真实模型仍待本机密钥验收；安卓未实现。参见 `docs/wiki/AI-Setup.md` 和 `docs/wiki/Roadmap.md`，不把模拟验证当作真实模型验收。不得输出或提交本地密钥。
+已保留可点击网页原型，并新增 React + TypeScript 前端、Fastify + TypeScript 后端、MySQL 迁移与消息存储接口。本机 Docker 已恢复，真实数据库与浏览器存储已验证。DeepSeek 文字适配、回复持久化、费用预留与去重已实现；首次真实模型调用、历史读取和重复请求去重已验证，人物语气仍需多场景校准；安卓未实现。参见 `docs/wiki/AI-Setup.md` 和 `docs/wiki/Roadmap.md`，不把模拟验证当作真实模型验收。不得输出或提交本地密钥。

@@ -1,6 +1,6 @@
 # 在你身边 · by-your-side
 
-李泽言主题的个人安卓陪伴 App 项目。已有交互原型、React + TypeScript 前端、Fastify + TypeScript 后端与 MySQL 消息存储。已实现DeepSeek文字适配与回复/费用持久化，真实模型待本机配置密钥验收；云端通知与安卓安装包尚未实现。
+李泽言主题的个人安卓陪伴 App 项目。已有交互原型、React + TypeScript 前端、Fastify + TypeScript 后端与 MySQL 消息存储。已实现 DeepSeek 文字适配与回复/费用持久化，首次真实调用、历史读取与重复请求去重已验证，人物语气仍待持续校准；云端通知与安卓安装包尚未实现。
 
 ## 项目文档与开发规划
 

@@ -294,6 +294,7 @@ export function App() {
   }
   const connected = service?.database === 'connected' && !loadError;
   const aiEnabled = service?.ai === 'configured';
+  const modelStatus = !connected ? '服务待连接' : aiEnabled ? 'DeepSeek聊天' : 'AI 待配置';
   const lastUser = messages.filter((m) => m.role === 'user').at(-1);
   const needsReply = lastUser && !messages.some((m) => m.replyToMessageId === lastUser.id);
   const statusText = loading
@@ -498,9 +499,11 @@ export function App() {
           '李泽言',
           replying
             ? '正在输入…'
-            : aiEnabled
-              ? '留一点时间，说说今天的事'
-              : '消息已可保存 · 等待配置模型密钥',
+            : !connected
+              ? '连接电脑后读取消息与模型状态'
+              : aiEnabled
+                ? '留一点时间，说说今天的事'
+                : '消息已可保存 · 等待配置模型密钥',
         )}
         <div className="chat-banner">
           <strong>
@@ -512,9 +515,11 @@ export function App() {
           </strong>
           <small>
             {loadError ||
-              (aiEnabled
-                ? 'AI 生成回复 · 暂未启用作息延迟与主动留言'
-                : '在本机配置DeepSeek密钥后，可启用真实回复。')}
+              (!connected
+                ? '尚未读取到电脑服务状态，请先检查连接。'
+                : aiEnabled
+                  ? 'AI 生成回复 · 暂未启用作息延迟与主动留言'
+                  : '在本机配置DeepSeek密钥后，可启用真实回复。')}
           </small>
           {!connected && !loading && (
             <button className="text-button" onClick={() => void refresh()}>
@@ -529,9 +534,15 @@ export function App() {
               <Plush />
               <h3>从一句日常开始</h3>
               <p>
-                消息保存后，重新打开也能找回来。
+                {connected
+                  ? '消息保存后，重新打开也能找回来。'
+                  : '连接成功后，就能读取和发送消息。'}
                 <br />
-                {aiEnabled ? '想说什么，就从这里开始。' : '模型接入已准备好，等待本机配置密钥。'}
+                {!connected
+                  ? '暂时无法确认模型是否已配置，无需在手机填写密钥。'
+                  : aiEnabled
+                    ? '想说什么，就从这里开始。'
+                    : '模型接入已准备好，等待本机配置密钥。'}
               </p>
             </div>
           )}
@@ -729,9 +740,11 @@ export function App() {
             <p className="muted">
               DeepSeek Flash · 非思考模式
               <br />
-              {aiEnabled
-                ? '密钥已配置，实际可用性以调用结果为准。'
-                : '等待在本机 .env.local 配置 DEEPSEEK_API_KEY。'}
+              {!connected
+                ? '尚未读取到电脑的模型状态，请先连接电脑。'
+                : aiEnabled
+                  ? '密钥已配置，实际可用性以调用结果为准。'
+                  : '等待在本机 .env.local 配置 DEEPSEEK_API_KEY。'}
             </p>
             {ai?.budget && (
               <p className="muted">
@@ -820,15 +833,19 @@ export function App() {
           </button>
         </div>
         <p className="studio-note">
-          真实消息存储 · {aiEnabled ? 'DeepSeek已配置' : 'AI 等待密钥'}
+          {connected ? '真实消息存储' : '消息存储待连接'} · {modelStatus}
           <br />
-          {aiEnabled ? '生成回复按实际用量计费。' : '未配置密钥时不会发起付费调用。'}
+          {!connected
+            ? '连接成功后再读取模型配置状态。'
+            : aiEnabled
+              ? '生成回复按实际用量计费。'
+              : '未配置密钥时不会发起付费调用。'}
         </p>
       </aside>
       <main className="phone" aria-label="手机开发版">
         <div className="statusbar">
           <span>在你身边</span>
-          <span className="demo-label">开发版 · {aiEnabled ? 'DeepSeek聊天' : 'AI 待配置'}</span>
+          <span className="demo-label">开发版 · {modelStatus}</span>
           <span className="signal">♥</span>
         </div>
         <div id="screen">

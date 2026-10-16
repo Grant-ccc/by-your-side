@@ -79,9 +79,12 @@ GitHub Actions 的 `Android trial APK` 工作流执行前端构建、Capacitor �
 | 无凭据/错误凭据不能读写 | 电脑检查通过 | 接口测试与真实 HTTPS 检查 |
 | 证书校验和消息持久化 | 电脑检查通过 | `test:lan`，不调用模型 |
 | Java 检查与 APK 编译 | GitHub Actions 通过 | [修正版构建](https://github.com/Grant-ccc/by-your-side/actions/runs/38770819327)，制品摘要已核对 |
-| 手机安装、连接、重开读取 | 待用户真机操作 | 属于 T01—T03，不能提前标记通过 |
+| 手机安装与打开 | 用户截图已确认 | 2026-10-16，目标安卓设备可打开聊天和设置页 |
+| 手机连接、重开读取 | 连接未通过 | 配置已保存，提示无法连接；电脑同地址 HTTPS/MySQL 检查通过，需核对手机网络与可达性 |
 | 最新回复重生成、导出/恢复 | 未实现 | 后续 S3，不属于本轮新增功能 |
 
 官方参考：[Capacitor 安卓环境](https://capacitorjs.com/docs/getting-started/environment-setup)、[自定义原生插件](https://capacitorjs.com/docs/android/custom-code)、[Android TLS](https://developer.android.com/privacy-and-security/security-ssl)。
 
 本轮交付修正版源码 `a2f63fc`；APK SHA-256 为 `e27d588140d2a75ea60ee9c3e8ece3e2452f3d9bc3d6bb44a3e4cdb33d40828d`。仅记录构建产物，不记录配对配置或私人聊天。
+
+2026-10-16 真机反馈：安装和打开已确认；连接仍未通过，不能据此认定校园网隔离。电脑监听地址未变化，电脑端 HTTPS 与数据库检查通过，已有 Node 程序入站允许规则，本轮未更改防火墙。下一步核对手机 Wi-Fi 与局域网地址，再决定网络排查路径。未连接时不能把尚未读取到的模型状态显示成“缺少密钥”；页面已针对这一误导修正。截图还显示顶部内容与系统状态栏重叠，保留为真机布局待修项。

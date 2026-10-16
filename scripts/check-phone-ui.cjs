@@ -127,6 +127,16 @@ const assert = require('node:assert/strict');
     assert.ok(
       !(await page.locator('.settings-group').first().innerText()).includes('数据库尚未就绪'),
     );
+    await page.getByText('尚未读取到电脑的模型状态，请先连接电脑。', { exact: false }).waitFor();
+    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    await page.getByText('连接电脑后读取消息与模型状态', { exact: true }).waitFor();
+    assert.equal(
+      await page.getByText('消息已可保存 · 等待配置模型密钥', { exact: true }).count(),
+      0,
+    );
+    await page
+      .getByText('暂时无法确认模型是否已配置，无需在手机填写密钥。', { exact: false })
+      .waitFor();
     await mkdir('.local/screenshots', { recursive: true });
     await page.screenshot({ path: '.local/screenshots/android-connection-fixture.png' });
     assert.equal(await page.evaluate(() => window.__generationCalls), 0);

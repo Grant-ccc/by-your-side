@@ -129,14 +129,22 @@ const assert = require('node:assert/strict');
     );
     await page.getByText('尚未读取到电脑的模型状态，请先连接电脑。', { exact: false }).waitFor();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
-    await page.getByText('连接电脑后读取消息与模型状态', { exact: true }).waitFor();
-    assert.equal(
-      await page.getByText('消息已可保存 · 等待配置模型密钥', { exact: true }).count(),
-      0,
-    );
-    await page
-      .getByText('暂时无法确认模型是否已配置，无需在手机填写密钥。', { exact: false })
-      .waitFor();
+    await page.getByText('暂时无法连接', { exact: true }).waitFor();
+    await page.getByLabel('聊天消息').fill('一段还没发送的草稿');
+    assert.equal(await page.getByRole('button', { name: '发送', exact: true }).isDisabled(), true);
+    await page.evaluate(() => {
+      window.__tlsFailure = false;
+      document.documentElement.style.setProperty('--safe-area-inset-top', '36px');
+      document.documentElement.style.setProperty('--safe-area-inset-bottom', '24px');
+    });
+    await page.getByRole('button', { name: '重新连接 →', exact: true }).click();
+    await page.getByRole('button', { name: '保存消息', exact: true }).waitFor();
+    assert.equal(await page.getByLabel('聊天消息').inputValue(), '一段还没发送的草稿');
+    assert.equal(await page.locator('.statusbar, .home-indicator').count(), 0);
+    const top = await page.locator('.topbar').boundingBox();
+    const bottom = await page.getByRole('navigation', { name: '主导航' }).boundingBox();
+    const viewport = page.viewportSize();
+    assert.ok(top.y >= 36 && bottom.y + bottom.height <= viewport.height - 24);
     await mkdir('.local/screenshots', { recursive: true });
     await page.screenshot({ path: '.local/screenshots/android-connection-fixture.png' });
     assert.equal(await page.evaluate(() => window.__generationCalls), 0);

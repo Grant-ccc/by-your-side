@@ -19,7 +19,10 @@ const { randomUUID } = require('node:crypto');
     const liveHealth = await (await page.request.get('http://127.0.0.1:17400/health')).json();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
     if (liveHealth.database === 'connected') {
-      await page.getByText('本地消息存储已连接', { exact: true }).waitFor();
+      await page
+        .locator('.chat-banner')
+        .filter({ hasText: '正在读取聊天' })
+        .waitFor({ state: 'hidden' });
       assert.equal(await page.getByLabel('聊天消息').isEnabled(), true);
     }
     // Explicitly exercise unavailable UI regardless of the actual database state.
@@ -36,8 +39,9 @@ const { randomUUID } = require('node:crypto');
     );
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
-    await page.getByText('暂时不能读取或保存消息', { exact: true }).waitFor();
-    assert.equal(await page.getByLabel('聊天消息').isDisabled(), true);
+    await page.getByText('暂时无法连接', { exact: true }).waitFor();
+    await page.getByLabel('聊天消息').fill('暂时发不出去的草稿');
+    assert.equal(await page.getByRole('button', { name: '发送', exact: true }).isDisabled(), true);
     await mkdir('.local/screenshots', { recursive: true });
     await page.screenshot({ path: '.local/screenshots/react-database-unavailable.png' });
     // Browser-only fixtures verify interaction, not MySQL connectivity or AI.
@@ -99,14 +103,16 @@ const { randomUUID } = require('node:crypto');
     });
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
-    await page.getByText('本地消息存储已连接', { exact: true }).waitFor();
-    await page.getByLabel('聊天消息').fill('今天也想把小事慢慢告诉你 🧸');
+    await page.getByText('暂时只能保存消息', { exact: true }).waitFor();
+    const multiline = '今天路过花店。\n门口的洋桔梗开了。';
+    await page.getByLabel('聊天消息').fill(multiline);
     await page.getByRole('button', { name: '保存消息', exact: true }).click();
     await page.getByRole('button', { name: '重试保存（不会重复写入）' }).waitFor();
     assert.equal(await page.getByLabel('聊天消息').isDisabled(), true);
     await page.getByRole('button', { name: '重试保存（不会重复写入）' }).click();
-    await page.locator('.message-state').filter({ hasText: '已存入数据库' }).waitFor();
+    await page.locator('time.message-state').waitFor();
     assert.equal(saved.length, 1);
+    assert.equal(saved[0].text, multiline);
     assert.equal(requestIds[0], requestIds[1]);
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
@@ -193,13 +199,16 @@ const { randomUUID } = require('node:crypto');
     });
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
-    await page.getByLabel('聊天消息').fill('AI 页面测试');
+    await page.getByLabel('聊天消息').fill('突然觉得，家里也该有一束花。');
     await page.getByRole('button', { name: '发送', exact: true }).click();
     await page.getByRole('status').filter({ hasText: '正在输入…' }).waitFor();
     assert.equal(await page.getByLabel('聊天消息').isDisabled(), true);
     releaseReply();
     await page.getByText('模拟回复：我听着，慢慢说。', { exact: true }).waitFor();
     assert.equal(replyCalls, 1);
+    assert.equal(await page.locator('.chat-banner').count(), 0);
+    await page.setViewportSize({ width: 360, height: 760 });
+    await page.screenshot({ path: '.local/screenshots/chat-preview.png' });
     await page.reload();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
     await page.getByText('模拟回复：我听着，慢慢说。', { exact: true }).waitFor();

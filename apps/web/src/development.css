@@ -129,8 +129,70 @@ body {
 .chat-banner strong {
   font-size: 12px;
 }
+.chat-banner .text-button {
+  min-height: 32px;
+  padding: 4px 0;
+}
+.chat-history {
+  overscroll-behavior: contain;
+  padding-top: 18px;
+}
+.chat-history .message-state {
+  display: block;
+  font-size: 10px;
+}
+.chat-history .him .message-state {
+  text-align: left;
+}
 .composer {
   margin-top: 8px;
+  align-items: end;
+}
+.composer textarea {
+  flex: 1;
+  min-width: 0;
+  resize: none;
+  border-radius: 14px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+  line-height: 1.4;
+  padding: 9px 11px;
+}
+.composer textarea:focus-visible {
+  outline: 2px solid var(--rose);
+  outline-offset: 1px;
+}
+.composer button {
+  min-height: 44px;
+  flex-shrink: 0;
+}
+.app-shell.native-shell {
+  display: block;
+  padding: 0;
+}
+.native-shell .studio {
+  display: none;
+}
+.native-shell .phone {
+  --top-inset: var(--safe-area-inset-top, env(safe-area-inset-top, 0px));
+  width: 100%;
+  max-width: none;
+  height: 100dvh;
+  min-height: 0;
+  border-radius: 0;
+  box-shadow: none;
+  padding: var(--top-inset) var(--safe-area-inset-right, env(safe-area-inset-right, 0px))
+    max(8px, var(--safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)))
+    var(--safe-area-inset-left, env(safe-area-inset-left, 0px));
+  background-image:
+    linear-gradient(var(--pink) var(--top-inset), transparent var(--top-inset)),
+    radial-gradient(#ebd8ce 0.65px, transparent 0.65px);
+  background-size:
+    100% 100%,
+    13px 13px;
 }
 .empty-state .plush {
   margin: 0 auto 20px;

@@ -282,6 +282,7 @@ export function App() {
   }
   function submit(event: FormEvent) {
     event.preventDefault();
+    if (!canSend || !draft.trim()) return;
     const parsed = SendMessageSchema.safeParse({
       clientRequestId: crypto.randomUUID(),
       text: draft,
@@ -292,7 +293,8 @@ export function App() {
     }
     void save(parsed.data);
   }
-  const connected = service?.database === 'connected' && !loadError;
+  const connected = !loading && service?.database === 'connected' && !loadError;
+  const canSend = connected && !outbox && !sending && !replying;
   const aiEnabled = service?.ai === 'configured';
   const modelStatus = !connected ? '服务待连接' : aiEnabled ? 'DeepSeek聊天' : 'AI 待配置';
   const lastUser = messages.filter((m) => m.role === 'user').at(-1);
@@ -495,55 +497,32 @@ export function App() {
   function chat() {
     return (
       <>
-        {header(
-          '李泽言',
-          replying
-            ? '正在输入…'
-            : !connected
-              ? '连接电脑后读取消息与模型状态'
-              : aiEnabled
-                ? '留一点时间，说说今天的事'
-                : '消息已可保存 · 等待配置模型密钥',
+        {header('李泽言', '我们的日常')}
+        {(!connected || !aiEnabled) && (
+          <div className="chat-banner" role="status">
+            <strong>
+              {loading ? '正在读取聊天…' : connected ? '暂时只能保存消息' : '暂时无法连接'}
+            </strong>
+            {!loading && (
+              <small>
+                {connected
+                  ? '消息会保留。回复功能需要在电脑上配置。'
+                  : loadError || '可以先写下想说的话，连接后再发送。'}
+              </small>
+            )}
+            {!connected && !loading && (
+              <button className="text-button" onClick={() => void refresh()}>
+                重新连接 →
+              </button>
+            )}
+          </div>
         )}
-        <div className="chat-banner">
-          <strong>
-            {loading
-              ? '正在读取消息…'
-              : connected
-                ? '本地消息存储已连接'
-                : '暂时不能读取或保存消息'}
-          </strong>
-          <small>
-            {loadError ||
-              (!connected
-                ? '尚未读取到电脑服务状态，请先检查连接。'
-                : aiEnabled
-                  ? 'AI 生成回复 · 暂未启用作息延迟与主动留言'
-                  : '在本机配置DeepSeek密钥后，可启用真实回复。')}
-          </small>
-          {!connected && !loading && (
-            <button className="text-button" onClick={() => void refresh()}>
-              重新连接 →
-            </button>
-          )}
-        </div>
         <div className="chat-history" ref={historyRef} aria-live="polite">
-          <div className="chat-date">我们的日常 · 开发版</div>
-          {!loading && !messages.length && (
+          {connected && !messages.length && !outbox && (
             <div className="first-message">
               <Plush />
               <h3>从一句日常开始</h3>
-              <p>
-                {connected
-                  ? '消息保存后，重新打开也能找回来。'
-                  : '连接成功后，就能读取和发送消息。'}
-                <br />
-                {!connected
-                  ? '暂时无法确认模型是否已配置，无需在手机填写密钥。'
-                  : aiEnabled
-                    ? '想说什么，就从这里开始。'
-                    : '模型接入已准备好，等待本机配置密钥。'}
-              </p>
+              <p>今天有什么事，想留在这里？</p>
             </div>
           )}
           {messages.map((m) => (
@@ -551,13 +530,14 @@ export function App() {
               <Avatar you={m.role === 'user'} />
               <div className="message-body">
                 <div className="bubble">{m.text}</div>
-                <div className="message-state">
-                  {new Date(m.createdAt).toLocaleTimeString('zh-CN', {
+                <time className="message-state" dateTime={m.createdAt}>
+                  {new Date(m.createdAt).toLocaleString('zh-CN', {
+                    month: 'numeric',
+                    day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit',
-                  })}{' '}
-                  · 已存入数据库
-                </div>
+                  })}
+                </time>
               </div>
             </div>
           ))}
@@ -618,19 +598,23 @@ export function App() {
           )}
         </div>
         <form className="composer" onSubmit={submit}>
-          <input
+          <textarea
             aria-label="聊天消息"
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
-            placeholder={outbox ? '先确认上一条消息的保存结果' : '想和他说点什么…'}
+            placeholder={
+              outbox
+                ? '先确认上一条消息'
+                : !connected
+                  ? '可以先写，连接后再发送…'
+                  : '想和他说点什么…'
+            }
             maxLength={2000}
-            disabled={!connected || !!outbox || sending || replying}
+            rows={2}
+            disabled={!!outbox || sending}
           />
-          <button
-            className="primary"
-            disabled={!connected || !!outbox || sending || replying || !draft.trim()}
-          >
-            {aiEnabled ? '发送' : '保存消息'}
+          <button className="primary" disabled={!canSend || !draft.trim()}>
+            {!connected || aiEnabled ? '发送' : '保存消息'}
           </button>
         </form>
       </>
@@ -803,7 +787,7 @@ export function App() {
     </>
   );
   return (
-    <div className="app-shell">
+    <div className={`app-shell${isAndroid() ? ' native-shell' : ''}`}>
       <aside className="studio">
         <div className="eyebrow">PRIVATE DAYS / DEVELOPMENT</div>
         <h1>
@@ -843,11 +827,13 @@ export function App() {
         </p>
       </aside>
       <main className="phone" aria-label="手机开发版">
-        <div className="statusbar">
-          <span>在你身边</span>
-          <span className="demo-label">开发版 · {modelStatus}</span>
-          <span className="signal">♥</span>
-        </div>
+        {!isAndroid() && (
+          <div className="statusbar">
+            <span>在你身边</span>
+            <span className="demo-label">开发版 · {modelStatus}</span>
+            <span className="signal">♥</span>
+          </div>
+        )}
         <div id="screen">
           {page === 'home'
             ? home()
@@ -887,13 +873,18 @@ export function App() {
               { id: 'album', name: '回忆', icon: 'album' },
             ] as const
           ).map((n) => (
-            <button key={n.id} onClick={() => go(n.id)} className={page === n.id ? 'active' : ''}>
+            <button
+              key={n.id}
+              onClick={() => go(n.id)}
+              className={page === n.id ? 'active' : ''}
+              aria-current={page === n.id ? 'page' : undefined}
+            >
               <Icon name={n.icon} />
               <span>{n.name}</span>
             </button>
           ))}
         </nav>
-        <div className="home-indicator" />
+        {!isAndroid() && <div className="home-indicator" />}
       </main>
       <div id="toast" className={notice ? 'show' : ''} role="status">
         {notice}

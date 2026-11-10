@@ -2,7 +2,7 @@
 
 [返回首页](Home.md) · [已读样本摘记](Character-Samples.md)
 
-这里收的是可持续取样的**来源**。核对了 10 套公开视频目录，留下 **1,153 个不同的目录链接**。目录按视频条目或投稿分集计数，同一段剧情也可能被不同玩家重复上传。已单独[回看三段短信的首条路径](Character-Samples.md#实际回看三段短信的首条路径)，并[补看七段有往返的短信](Character-Samples.md#补看她怎样把新话题带进聊天)，区分谁开场、谁提起新话题。
+这里收的是可持续取样的**来源**。核对了 10 套公开视频目录，留下 **1,153 个不同的目录链接**。目录按视频条目或投稿分集计数，同一段剧情也可能被不同玩家重复上传。已核对对白的条目见[资料覆盖表](Character-Samples.md#v01-资料覆盖)，其中区分谁先开口、谁提起新话题，以及该信息是否已为角色所知。
 
 完整索引：[分集索引 TSV](https://github.com/Grant-ccc/by-your-side/blob/main/docs/reference/li-zeyan-source-index.tsv)。可按来源编号、目录类型、标题线索筛选；标题线索是从目录名提取的粗分类，没标签的条目也可能合适。每行保留原目录序号、可用时长和入口，不保存原作台词、录屏或字幕。
 
@@ -28,11 +28,12 @@
 | V01 附带短信 | [吃冰挑战](https://www.bilibili.com/video/BV1Ei421h7z1/?p=2)、[时间观念](https://www.bilibili.com/video/BV1dx4y1t7Qr/?p=3)、[加班之约](https://www.bilibili.com/video/BV1jH2hBaEMx/?p=3)、[出差伴侣](https://www.bilibili.com/video/BV1K12YB9Enw/?p=2)、[Pebbling](https://www.bilibili.com/video/BV1MnTx6gEEL/?p=2)、[陪睡黑猫](https://www.bilibili.com/video/BV1A8Tx6PEon/?p=2) |
 | V08 日常掉落 | [2—5 月归档](https://www.bilibili.com/video/BV1L4411376T/?p=1)、[5 月末](https://www.bilibili.com/video/BV1L4411376T/?p=3)、[6 月末](https://www.bilibili.com/video/BV1L4411376T/?p=8)、[7 月初](https://www.bilibili.com/video/BV1L4411376T/?p=9)、[7 月初补充](https://www.bilibili.com/video/BV1L4411376T/?p=12)、[8 月](https://www.bilibili.com/video/BV1L4411376T/?p=21) |
 | V09 同一活动三种载体 | [短信 P3](https://www.bilibili.com/video/BV14jZ3BWE2M/?p=3)、[朋友圈 P8](https://www.bilibili.com/video/BV14jZ3BWE2M/?p=8)、[视频电话 P11](https://www.bilibili.com/video/BV14jZ3BWE2M/?p=11) |
-| V01 近年附带短信 | 《剪裁尺寸》在《挑夜缠心》的 P2，见 R02。[短信分集](https://www.bilibili.com/video/BV18LTx6CEtg/?p=2) |
-| V03 较新的卡面包 | 《回忆之味》藏在《修复之约》P64 末尾，约 24:38 起，见 R01。2026 生日互动包的短信位置仍待定位。[修复之约 P64](https://www.bilibili.com/video/BV1244y1C7KX/?p=64&t=1478) · [2026 生日互动包 P61](https://www.bilibili.com/video/BV1244y1C7KX/?p=61) |
+| V01 近年附带短信 | 《剪裁尺寸》在《挑夜缠心》的 P2，见 R02。《时间观念》与《事必躬亲》已核对，见 R07、R09。[剪裁尺寸](https://www.bilibili.com/video/BV18LTx6CEtg/?p=2) · [时间观念](https://www.bilibili.com/video/BV1dx4y1t7Qr/?p=3) · [事必躬亲](https://www.bilibili.com/video/BV1JZzCYhEh5/?p=2) |
+| V03 较新的卡面包 | 《回忆之味》在《修复之约》P64 末尾，约 24:38 起，见 R01。《眷恋时光》已从单独分集和另一份生日录屏交叉核对，见 R04，两份录屏合计一段。[修复之约 P64](https://www.bilibili.com/video/BV1244y1C7KX/?p=64&t=1478) · [眷恋时光 P3](https://www.bilibili.com/video/BV1TTiUBzEsC/?p=3) · [生日录屏 00:25](https://www.bilibili.com/video/BV12Fi9BUETD/?t=25) |
 | V10 生日卡面与互动 | 《代拆礼物》在第一集开头，见 R03。[2025 生日互动录屏](https://www.bilibili.com/video/BV1qFraYtE45/) |
+| 其他已回看短信 | 《新鲜尝试》为节日回溯路径，见 R05。《李泽言日程体验》与《心跃》配套短信见 R06、R08。[2025 年 520](https://www.bilibili.com/video/BV186EdzMEQA/?t=94) · [惜时之约 P2](https://www.bilibili.com/video/BV1K6421f7Mi/?p=2) · [心跃 10:55](https://www.bilibili.com/video/BV1Hx4y117gF/?t=655) |
 
-补普通话题时，可从 V02 的 [菜单上新](https://www.bilibili.com/video/BV1aMCFBFEqR/) 和 [猫猫生活](https://www.bilibili.com/video/BV1YKCFBhEpo/) 入手，再对照约会里的 [吃播之约](https://www.bilibili.com/video/BV1Y7411J7gC/?p=120)、[苕香之约](https://www.bilibili.com/video/BV1Y7411J7gC/?p=21)。需要回查早期《电影之约》时，可并看 [V04 P84](https://www.bilibili.com/video/BV1Y7411J7gC/?p=84)、[V05 P4](https://www.bilibili.com/video/BV1XF411v7VD/?p=4) 与上一页的文字摘记。上述链接只代表已定位分集，不代表已读对白。
+《菜单上新》《猫猫生活》已核对录屏字幕，见 [P01、P02](Character-Samples.md#电话旁证)。还可对照约会里的[吃播之约](https://www.bilibili.com/video/BV1Y7411J7gC/?p=120)、[苕香之约](https://www.bilibili.com/video/BV1Y7411J7gC/?p=21)，这两个入口已定位分集。回查早期《电影之约》时可并看 [V04 P84](https://www.bilibili.com/video/BV1Y7411J7gC/?p=84)、[V05 P4](https://www.bilibili.com/video/BV1XF411v7VD/?p=4) 与文字摘记 D01–D03。
 
 ## 官方材料与主线索引
 
@@ -46,4 +47,4 @@
 2. **以完整往返为一条记录。** 保留对方先说什么、角色第一次怎么接、后续如何回应。玩家选项和李泽言的台词分别记；同一场景不同上传、同一短信的重录不重复计数。
 3. **先做均衡的试读批次。** 从分享小事、说不同偏好、接玩笑、主动聊自己的事、表达关心五组，各挑 4—6 个上下文完整、来自不同场景的片段；优先近年，早期拿来对照。确认“像”的具体位置再改提示词，不把整套目录或原作对白塞进去。
 
-目前未找到可核验的、覆盖近年李泽言普通短信的公开全文库。最可行的取样入口是 V01 的附带短信、V03 的卡面互动包和 V08 的旧日常短信；电话大合集用来补口吻与互动节奏，不能替代短信。
+2026-11-11 筛查了 V01 目录末段 92 条记录的投稿分集标题，再回看补充短信。符合「她先发第一条」的早期证据主要来自 V08。近年样本中可见她在对话中带进新内容，也有他的第一句证实她先发过内容的情况。若开场在画面外，记录为「由对白得知」或「未见开场」，直到有能定位到已发送消息的画面再计入缺口。电话字幕单独保留。

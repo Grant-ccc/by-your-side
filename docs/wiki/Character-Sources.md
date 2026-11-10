@@ -28,7 +28,9 @@
 | V01 附带短信 | [吃冰挑战](https://www.bilibili.com/video/BV1Ei421h7z1/?p=2)、[时间观念](https://www.bilibili.com/video/BV1dx4y1t7Qr/?p=3)、[加班之约](https://www.bilibili.com/video/BV1jH2hBaEMx/?p=3)、[出差伴侣](https://www.bilibili.com/video/BV1K12YB9Enw/?p=2)、[Pebbling](https://www.bilibili.com/video/BV1MnTx6gEEL/?p=2)、[陪睡黑猫](https://www.bilibili.com/video/BV1A8Tx6PEon/?p=2) |
 | V08 日常掉落 | [2—5 月归档](https://www.bilibili.com/video/BV1L4411376T/?p=1)、[5 月末](https://www.bilibili.com/video/BV1L4411376T/?p=3)、[6 月末](https://www.bilibili.com/video/BV1L4411376T/?p=8)、[7 月初](https://www.bilibili.com/video/BV1L4411376T/?p=9)、[7 月初补充](https://www.bilibili.com/video/BV1L4411376T/?p=12)、[8 月](https://www.bilibili.com/video/BV1L4411376T/?p=21) |
 | V09 同一活动三种载体 | [短信 P3](https://www.bilibili.com/video/BV14jZ3BWE2M/?p=3)、[朋友圈 P8](https://www.bilibili.com/video/BV14jZ3BWE2M/?p=8)、[视频电话 P11](https://www.bilibili.com/video/BV14jZ3BWE2M/?p=11) |
-| V03 较新的卡面包 | [2026 生日互动包 P61](https://www.bilibili.com/video/BV1244y1C7KX/?p=61)、[修复之约 P64](https://www.bilibili.com/video/BV1244y1C7KX/?p=64)。卡面包内的短信位置还需按画面核对。 |
+| V01 近年附带短信 | 《剪裁尺寸》在《挑夜缠心》的 P2，见 R02。[短信分集](https://www.bilibili.com/video/BV18LTx6CEtg/?p=2) |
+| V03 较新的卡面包 | 《回忆之味》藏在《修复之约》P64 末尾，约 24:38 起，见 R01。2026 生日互动包的短信位置仍待定位。[修复之约 P64](https://www.bilibili.com/video/BV1244y1C7KX/?p=64&t=1478) · [2026 生日互动包 P61](https://www.bilibili.com/video/BV1244y1C7KX/?p=61) |
+| V10 生日卡面与互动 | 《代拆礼物》在第一集开头，见 R03。[2025 生日互动录屏](https://www.bilibili.com/video/BV1qFraYtE45/) |
 
 补普通话题时，可从 V02 的 [菜单上新](https://www.bilibili.com/video/BV1aMCFBFEqR/) 和 [猫猫生活](https://www.bilibili.com/video/BV1YKCFBhEpo/) 入手，再对照约会里的 [吃播之约](https://www.bilibili.com/video/BV1Y7411J7gC/?p=120)、[苕香之约](https://www.bilibili.com/video/BV1Y7411J7gC/?p=21)。需要回查早期《电影之约》时，可并看 [V04 P84](https://www.bilibili.com/video/BV1Y7411J7gC/?p=84)、[V05 P4](https://www.bilibili.com/video/BV1XF411v7VD/?p=4) 与上一页的文字摘记。上述链接只代表已定位分集，不代表已读对白。
 

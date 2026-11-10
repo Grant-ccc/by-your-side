@@ -1,0 +1,365 @@
+.phone.journal-theme {
+  --wine: #933e37;
+  --deep: #78332d;
+  --rose: #b76d59;
+  --pink: #fff0d8;
+  --pale: #f9dfc6;
+  --paper: #fff8e9;
+  --ink: #503832;
+  --muted: #7b564b;
+  --line: #dfb79e;
+  background-color: #fff2da;
+  background-image: repeating-linear-gradient(0deg, #a96b4210 0 1px, transparent 1px 22px);
+  background-size: auto;
+}
+.native-shell .phone.journal-theme {
+  background-image:
+    linear-gradient(var(--pink) var(--top-inset), transparent var(--top-inset)),
+    repeating-linear-gradient(0deg, #a96b4210 0 1px, transparent 1px 22px);
+}
+.journal-theme .topbar {
+  background: var(--pink);
+  padding: 8px 0;
+  min-height: 61px;
+  margin: 0 15px;
+  border-bottom: 1px dashed #cd9e86;
+}
+.journal-theme .topbar h2,
+.journal-intro h3,
+.journal-chat-title strong,
+.journal-theme .person strong {
+  font-family: 'KaiTi', 'Kaiti SC', 'STKaiti', 'Noto Serif CJK SC', serif;
+  font-synthesis: weight;
+}
+.journal-theme .topbar .icon-button {
+  min-width: 44px;
+  min-height: 44px;
+  border: 1px solid #dbaa8f;
+  border-radius: 8px;
+  background: #fff5e1;
+}
+.journal-theme .topbar button:hover {
+  background: #f7d6bd;
+}
+.journal-intro {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 16px 5px 4px;
+  color: var(--deep);
+}
+.journal-intro div > span {
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 2px;
+}
+.journal-intro h3 {
+  margin-top: 2px;
+  font-size: clamp(23px, 7vw, 29px);
+  line-height: 1.3;
+}
+.journal-date {
+  flex: none;
+  transform: rotate(7deg);
+  padding: 4px 7px;
+  border: 1px solid #cb9074;
+  border-radius: 6px;
+  background: #ffe9cf;
+  color: #93463b;
+  font:
+    italic 21px Georgia,
+    serif;
+}
+.journal-theme .pair {
+  margin: 0;
+  padding: 13px 8px 13px 3px;
+  background: none;
+  gap: 6px;
+}
+.journal-theme .pair::after {
+  display: none;
+}
+.journal-theme .pair-faces {
+  flex: 1;
+  min-width: 0;
+  justify-content: space-evenly;
+  gap: 8px;
+}
+.journal-theme .person {
+  position: relative;
+  flex: none;
+  width: clamp(72px, 22vw, 90px);
+  border: 1px solid #d2a58a;
+  border-radius: 3px;
+  padding: 5px 5px 6px;
+  background: #fff8eb;
+  box-shadow: 2px 3px 5px #87584926;
+  transform: rotate(-6deg);
+}
+.journal-theme .person:last-child {
+  transform: rotate(5deg);
+}
+.journal-theme .person::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  top: -5px;
+  left: 30%;
+  width: 40%;
+  height: 9px;
+  border-radius: 1px;
+  background: repeating-linear-gradient(52deg, #cc795c8c 0 2px, #f0b49bb8 2px 5px);
+}
+.journal-theme .person .avatar {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 1;
+  border: 0;
+  border-radius: 2px;
+}
+.journal-theme .person strong {
+  margin-top: 4px;
+  color: var(--deep);
+  font-size: 13px;
+}
+.journal-theme .pair-heart {
+  position: static;
+  color: #a95043;
+  transform: rotate(-12deg);
+  font-size: 17px;
+}
+.journal-stamp {
+  flex: none;
+  width: 53px;
+  height: 53px;
+  display: grid;
+  place-content: center;
+  border: 1px dashed #b06550;
+  outline: 1px solid #b06550;
+  outline-offset: -5px;
+  border-radius: 50%;
+  transform: rotate(8deg);
+  background: #ffe9cf;
+  color: #8b4035;
+  text-align: center;
+  font-size: 11px;
+  line-height: 1.2;
+}
+.journal-theme .avatar {
+  background: #f7d6bf;
+  border-color: #fff8e9;
+}
+.journal-theme .avatar.you {
+  background: repeating-linear-gradient(142deg, #f7dcc4 0 4px, #ffedda 4px 8px);
+  color: #a25042;
+}
+.journal-theme .avatar.you svg {
+  width: 44%;
+  height: 44%;
+  stroke: currentColor;
+  stroke-dasharray: 2.5 2;
+}
+.official-portrait {
+  /* Square at (22, 154), 219px wide, in the 800px-wide official card preview. */
+  position: absolute;
+  width: 365.3%;
+  height: auto;
+  max-width: none;
+  top: -70.3%;
+  left: -10%;
+}
+.official-portrait[hidden] {
+  display: none;
+}
+.journal-theme .tabs {
+  margin: 7px 0 12px;
+  padding: 3px;
+  border-block: 1px dashed #c58f76;
+  gap: 6px;
+}
+.journal-theme .tabs button {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  min-height: 42px;
+  padding: 6px 3px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+}
+.journal-theme .tabs button.active {
+  background: #f0bc9f;
+  color: var(--deep);
+  border-color: #e3af94;
+}
+.journal-theme .panel {
+  background: var(--paper);
+  padding: 0;
+  margin-bottom: 11px;
+  border-radius: 8px;
+  box-shadow: 1px 2px #a869431a;
+}
+.journal-theme .panel-header {
+  border-radius: 0;
+  border-bottom: 1px dashed #dcb398;
+  background: transparent;
+  color: var(--deep);
+  font-weight: 650;
+}
+.journal-theme .panel-header > span::before {
+  content: none;
+}
+.journal-theme .panel-header small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.journal-home .panel:has(.mood-card) {
+  position: relative;
+  background: #ffe7d1;
+}
+.journal-home .panel:has(.mood-card)::before {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: 15px;
+  width: 37px;
+  height: 8px;
+  border: 1px dashed #bc775e;
+  background: #e5a287a8;
+  transform: rotate(5deg);
+  pointer-events: none;
+}
+.journal-theme .mood-card {
+  justify-content: space-between;
+  padding: 7px 11px 9px;
+  gap: 5px;
+}
+.journal-theme .mood-card h3 {
+  margin-bottom: 0;
+}
+.journal-theme .mood-card .pill {
+  margin-top: 5px;
+  min-height: 34px;
+  background: #fff4e0;
+  border-radius: 5px;
+}
+.journal-sticker {
+  width: 72px;
+  height: 57px;
+  flex: none;
+}
+.journal-theme .timeline {
+  padding: 2px 10px;
+}
+.journal-theme .timeline-row {
+  gap: 6px;
+  min-height: 34px;
+  padding: 7px 0;
+  border-bottom: 1px dashed #e6c3ad;
+  font-size: 12px;
+  line-height: 1.5;
+}
+.journal-theme .timeline-row:last-child {
+  border-bottom: 0;
+}
+.journal-theme .timeline-row time {
+  min-width: 28px;
+}
+.journal-theme .trip-row {
+  padding: 0;
+  gap: 8px;
+}
+.journal-theme .trip-mini {
+  min-width: 0;
+  min-height: 67px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2px;
+  padding: 6px;
+  background: #fff3df;
+  border: 1px dashed #c99578;
+  border-radius: 5px;
+  box-shadow: 1px 2px #a869431a;
+}
+.journal-theme .trip-mini > span {
+  min-width: 0;
+}
+.journal-theme .trip-mini strong {
+  display: block;
+  margin-block: 2px;
+  font-size: 12px;
+}
+.journal-theme .trip-mini small {
+  font-size: 10px;
+}
+.journal-theme .trip-mini .journal-sticker {
+  width: min(53%, 63px);
+  height: 46px;
+}
+.journal-chat-title {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 7px 17px 3px;
+  padding: 6px 9px;
+  border: 1px solid #e4b495;
+  border-radius: 5px;
+  background: #f5cfb6;
+  color: var(--deep);
+  transform: rotate(-0.55deg);
+}
+.journal-chat-title span {
+  font:
+    italic 13px Georgia,
+    serif;
+}
+.journal-theme .bubble {
+  border-radius: 5px 8px 8px 3px;
+  background: #fffaec;
+  box-shadow: 1px 2px #a86c4720;
+}
+.journal-theme .message.you .bubble {
+  background: #f8d5bd;
+  border-color: #e3b299;
+  border-radius: 8px 5px 3px 8px;
+}
+.journal-theme .message .avatar {
+  width: 34px;
+  height: 34px;
+  box-shadow: 0 0 0 1px #d4a48b;
+}
+.journal-theme .journal-regenerate {
+  background: transparent;
+  padding: 0 0 0 43px;
+}
+.journal-theme .journal-regenerate .pill {
+  min-height: 35px;
+  margin: 0;
+  padding-left: 1px;
+  background: transparent;
+}
+.journal-theme .composer {
+  background: var(--pink);
+  border-top: 1px dashed #d4a48c;
+}
+.journal-theme .composer textarea {
+  background: #fff9eb;
+  border-radius: 6px;
+}
+.journal-theme .composer .primary {
+  border-radius: 7px;
+}
+.journal-theme .bottom-nav {
+  background: #fff4df;
+  border: 1px dashed #c99578;
+  border-radius: 8px;
+}
+.journal-theme .bottom-nav button {
+  min-height: 44px;
+  border-radius: 5px;
+}
+.journal-theme .bottom-nav button.active {
+  background: #f6d6b9;
+}

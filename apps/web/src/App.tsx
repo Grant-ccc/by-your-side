@@ -19,11 +19,20 @@ import {
   replyStatus,
 } from './api';
 import './development.css';
+import './journal.css';
 import { isAndroid, getConnection, configureConnection, forgetConnection } from './lan';
 import { saveChatExport } from './chat-export';
+import { JournalSticker } from './JournalSticker';
 
 type Page = 'home' | 'chat' | 'album' | 'settings' | 'memory' | 'trip';
 type Tab = '日常记录' | '习惯打卡' | '备忘录';
+const liZeyanCard =
+  'https://assets.papegames.com/nikkiweb/papegame/evolcn/material/0z4alhmm/7f87410a5193ff1f6dcbbbc9445ab469-sz_621101.jpg';
+const journalDate = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Asia/Shanghai',
+  month: '2-digit',
+  day: '2-digit',
+});
 type ReplacementStatus = Pick<ReplyResult, 'state' | 'error'> & { sourceId: string };
 const paths: Record<string, ReactNode> = {
   home: <path d="m2 10 10-8 10 8M5 9v13h14V9M10 22v-8h5v8" />,
@@ -65,27 +74,33 @@ function Icon({ name }: { name: string }) {
   );
 }
 function Avatar({ you = false }: { you?: boolean }) {
+  if (you)
+    return (
+      <span className="avatar you" role="img" aria-label="你的头像占位">
+        <Icon name="heart" />
+      </span>
+    );
   return (
-    <span
-      className={`avatar ${you ? 'you' : ''}`}
-      aria-label={you ? '你的占位头像' : '角色占位头像'}
-    >
+    <span className="avatar" role="img" aria-label="李泽言的头像">
       <svg viewBox="0 0 80 80" aria-hidden="true">
-        <circle cx="40" cy="35" r="24" fill={you ? '#a89789' : '#3d3338'} />
+        <circle cx="40" cy="35" r="24" fill="#3d3338" />
         <circle cx="40" cy="39" r="19" fill="#f2d8c6" />
-        <path
-          d={
-            you
-              ? 'M19 31Q24 8 49 18l13 16-7-4Q40 16 24 32Z'
-              : 'M15 33 23 14 48 11 65 33 44 24 33 31Z'
-          }
-          fill={you ? '#a89789' : '#3d3338'}
-        />
-        <rect x="19" y="59" width="42" height="28" rx="16" fill={you ? '#c4a497' : '#5d4241'} />
+        <path d="M15 33 23 14 48 11 65 33 44 24 33 31Z" fill="#3d3338" />
+        <rect x="19" y="59" width="42" height="28" rx="16" fill="#5d4241" />
         <circle cx="33" cy="40" r="1.5" fill="#60443b" />
         <circle cx="47" cy="40" r="1.5" fill="#60443b" />
         <path d="M37 48h6" stroke="#b77c71" strokeWidth="1.2" />
       </svg>
+      <img
+        className="official-portrait"
+        src={liZeyanCard}
+        alt=""
+        referrerPolicy="no-referrer"
+        decoding="async"
+        onError={(event) => {
+          event.currentTarget.hidden = true;
+        }}
+      />
     </span>
   );
 }
@@ -468,19 +483,18 @@ export function App() {
   function daily() {
     return (
       <>
-        <Panel title="此时此刻" right={<small>布局示例</small>}>
+        <Panel title="今日心情" right={<small>布局示例</small>}>
           <div className="mood-card">
-            <div className="mood-face">♥</div>
             <div>
               <h3>今天也有一点想你</h3>
-              <p className="muted">留一处，慢慢说今天的事。</p>
               <button className="pill" onClick={() => go('chat')}>
                 去聊天 →
               </button>
             </div>
+            <JournalSticker kind="mood" />
           </div>
         </Panel>
-        <Panel title="最新动态" right={<small>日程功能待接入</small>}>
+        <Panel title="日常剪贴" right={<small>动态预览</small>}>
           <div className="timeline">
             <div className="timeline-row">
               <time>日常</time>
@@ -492,20 +506,24 @@ export function App() {
             </div>
           </div>
         </Panel>
-        <Panel title="出行准备">
-          <div className="trip-row">
-            <button className="trip-mini" onClick={() => go('trip')}>
+        <div className="trip-row" aria-label="出行准备预览">
+          <button className="trip-mini" onClick={() => go('trip')}>
+            <span>
               <small>本次外出</small>
-              <span className="item-symbol">☂</span>
-              <span>折叠伞 · 物品示例</span>
-            </button>
-            <button className="trip-mini" onClick={() => go('trip')}>
+              <strong>焦糖布丁</strong>
+              <small>物品示例</small>
+            </span>
+            <JournalSticker kind="pudding" />
+          </button>
+          <button className="trip-mini" onClick={() => go('trip')}>
+            <span>
               <small>下次外出</small>
-              <span className="item-symbol">＋</span>
-              <span>为他准备一件小物品</span>
-            </button>
-          </div>
-        </Panel>
+              <strong>电影票</strong>
+              <small>物品示例</small>
+            </span>
+            <JournalSticker kind="ticket" />
+          </button>
+        </div>
       </>
     );
   }
@@ -513,17 +531,22 @@ export function App() {
     return (
       <>
         <header className="topbar">
-          <div className="home-title">
-            <span className="icon-button">
-              <Icon name="home" />
-            </span>
-            <h2>在你身边</h2>
-          </div>
+          <span className="icon-button" aria-hidden="true">
+            <Icon name="home" />
+          </span>
+          <h2>在你身边</h2>
           <button className="icon-button" onClick={() => go('settings')} aria-label="设置">
             <Icon name="gear" />
           </button>
         </header>
         <div className="page-scroll">
+          <section className="journal-intro">
+            <div>
+              <span>我们的手账</span>
+              <h3>今天，也在一起</h3>
+            </div>
+            <span className="journal-date">{journalDate.format().replace('/', '·')}</span>
+          </section>
           <section className="pair">
             <div className="pair-faces">
               <div className="person">
@@ -536,21 +559,21 @@ export function App() {
                 <strong>你</strong>
               </div>
             </div>
-            <div className="pair-copy">
-              <small>相伴的日常</small>
-              <h3>慢慢收藏</h3>
-              <button className="pill" onClick={() => go('settings')}>
-                称呼与日期待填写
+            <span className="journal-stamp">
+              两人的
+              <br />
+              日常
+            </span>
+          </section>
+          {!connected && (
+            <div className="connection-strip">
+              <span className="connection-dot" />
+              <span>{statusText}</span>
+              <button onClick={() => void refresh()} disabled={loading || sending}>
+                重连
               </button>
             </div>
-          </section>
-          <div className="connection-strip">
-            <span className={connected ? 'connection-dot online' : 'connection-dot'} />
-            <span>{statusText}</span>
-            <button onClick={() => void refresh()} disabled={loading || sending}>
-              重连
-            </button>
-          </div>
+          )}
           <div className="tabs" role="tablist">
             {(['日常记录', '习惯打卡', '备忘录'] as Tab[]).map((t) => (
               <button
@@ -606,7 +629,6 @@ export function App() {
               </div>
             </Panel>
           )}
-          <p className="mini-portrait-note">React 开发版 · 头像为临时示意</p>
         </div>
       </>
     );
@@ -614,7 +636,11 @@ export function App() {
   function chat() {
     return (
       <>
-        {header('李泽言', '我们的日常')}
+        {header('李泽言')}
+        <div className="journal-chat-title">
+          <strong>我们的便笺</strong>
+          <span>{journalDate.format().replace('/', '·')}</span>
+        </div>
         {(!connected || !aiEnabled) && (
           <div className="chat-banner" role="status">
             <strong>
@@ -698,7 +724,9 @@ export function App() {
             </div>
           )}
           {aiEnabled && lastUser && lastReply?.version && !replying && (
-            <div className="reply-control">
+            <div
+              className={`reply-control${!latestReplacement?.error && latestReplacement?.state !== 'running' ? ' journal-regenerate' : ''}`}
+            >
               {latestReplacement?.error && <p role="status">{latestReplacement.error.message}</p>}
               {latestReplacement?.state === 'running' ? (
                 <button
@@ -983,14 +1011,7 @@ export function App() {
               : '未配置密钥时不会发起付费调用。'}
         </p>
       </aside>
-      <main className="phone" aria-label="手机开发版">
-        {!isAndroid() && (
-          <div className="statusbar">
-            <span>在你身边</span>
-            <span className="demo-label">开发版 · {modelStatus}</span>
-            <span className="signal">♥</span>
-          </div>
-        )}
+      <main className={`phone journal-theme journal-${page}`} aria-label="手机开发版">
         <div id="screen">
           {page === 'home'
             ? home()

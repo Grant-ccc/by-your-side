@@ -47,6 +47,8 @@ scripts/            文档同步、开发辅助
 
 安卓工程位于 `apps/web/android/`，使用 Capacitor 8.4.3、JDK 21 和 Android SDK 36。GitHub Actions 已完成 Java 检查与 APK 编译，本机仍未安装安卓 SDK。安装、`setup:lan`、`dev:lan` 与安全边界见[安卓局域网连接](Android-LAN.md)。
 
+手账首页和聊天头像共用「李泽言·与李欢唱」进化前画面的裁切。客户端从官方图片地址读取，加载失败时显示本地占位。官方图片文件留在发布方的站点，仓库记录来源和裁切代码。所有者的头像使用爱心占位。[《恋与制作人》逐夏音浪公告](https://evol.papegames.cn/news/891)
+
 ### 首次启动
 
 ```sh

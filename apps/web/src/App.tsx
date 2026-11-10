@@ -20,6 +20,7 @@ import {
 } from './api';
 import './development.css';
 import { isAndroid, getConnection, configureConnection, forgetConnection } from './lan';
+import { saveChatExport } from './chat-export';
 
 type Page = 'home' | 'chat' | 'album' | 'settings' | 'memory' | 'trip';
 type Tab = '日常记录' | '习惯打卡' | '备忘录';
@@ -162,6 +163,8 @@ export function App() {
   const [connectionAddress, setConnectionAddress] = useState('');
   const [pairingError, setPairingError] = useState('');
   const [pairingBusy, setPairingBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
+  const [exportResult, setExportResult] = useState('');
   useEffect(() => {
     if (isAndroid())
       void getConnection()
@@ -378,6 +381,8 @@ export function App() {
   }
   const connected = !loading && service?.database === 'connected' && !loadError;
   const canSend = connected && !outbox && !sending && !replying;
+  const canExport =
+    connected && !!conversationId && !sending && !replying && !exporting && !pairingBusy;
   const aiEnabled = service?.ai === 'configured';
   const modelStatus = !connected ? '服务待连接' : aiEnabled ? 'DeepSeek聊天' : 'AI 待配置';
   const lastUser = messages.filter((m) => m.role === 'user').at(-1);
@@ -398,6 +403,33 @@ export function App() {
   const go = (next: Page) => {
     setPage(next);
   };
+  async function exportChat() {
+    if (!canExport) return;
+    const epoch = requestEpoch.current;
+    setExporting(true);
+    setExportResult('');
+    try {
+      const history = await loadHistory(conversationId);
+      if (epoch !== requestEpoch.current) return;
+      const result = await saveChatExport(history);
+      if (epoch !== requestEpoch.current) return;
+      setExportResult(
+        {
+          empty: '还没有已保存的聊天消息。',
+          saved: '聊天记录已保存。',
+          cancelled: '已取消保存。',
+          download: '已发起下载，请查看浏览器下载记录。',
+        }[result],
+      );
+    } catch (error) {
+      if (epoch === requestEpoch.current)
+        setExportResult(
+          error instanceof Error ? `导出失败。${error.message}` : '导出失败，请重试。',
+        );
+    } finally {
+      setExporting(false);
+    }
+  }
   const header = (title: string, sub?: string) => (
     <header className="topbar">
       <button className="icon-button" onClick={() => go('home')} aria-label="返回日常">
@@ -751,7 +783,7 @@ export function App() {
             {loadError && <p className="connection-error">{loadError}</p>}
             <button
               className="secondary full section-gap"
-              disabled={loading || sending || replying}
+              disabled={loading || sending || replying || exporting}
               onClick={() => void refresh()}
             >
               重新连接与读取历史
@@ -776,7 +808,7 @@ export function App() {
                   autoCorrect="off"
                   autoCapitalize="off"
                   placeholder="粘贴电脑生成的整段连接配置"
-                  disabled={pairingBusy || sending || replying || !!outbox}
+                  disabled={pairingBusy || sending || replying || exporting || !!outbox}
                 />
               </label>
               {pairingError && (
@@ -789,7 +821,9 @@ export function App() {
               )}
               <button
                 className="secondary full section-gap"
-                disabled={!pairing.trim() || pairingBusy || sending || replying || !!outbox}
+                disabled={
+                  !pairing.trim() || pairingBusy || sending || replying || exporting || !!outbox
+                }
                 onClick={() => void connectPhone()}
               >
                 {pairingBusy ? '正在连接…' : '保存并连接'}
@@ -797,7 +831,7 @@ export function App() {
               {connectionAddress && (
                 <button
                   className="text-button"
-                  disabled={pairingBusy || sending || replying || !!outbox}
+                  disabled={pairingBusy || sending || replying || exporting || !!outbox}
                   onClick={() => {
                     void forgetConnection()
                       .then(() => {
@@ -859,7 +893,7 @@ export function App() {
           </section>
           <section className="settings-group">
             <h3>接下来的能力</h3>
-            <p className="muted">记忆提取、日程调度、通知、图片生成与数据备份仍待接入。</p>
+            <p className="muted">记忆提取、日程调度、通知与图片生成仍待接入。</p>
             <button className="secondary full section-gap" onClick={() => go('memory')}>
               查看记忆模块进度
             </button>
@@ -871,6 +905,15 @@ export function App() {
               <br />
               聊天记录保存在本地数据库，不会上传 GitHub；启用模型后，必要上下文会发送给DeepSeek。
             </p>
+            <button
+              className="secondary full section-gap"
+              disabled={!canExport}
+              onClick={() => void exportChat()}
+            >
+              {exporting ? '正在导出…' : '导出聊天记录（TXT）'}
+            </button>
+            <p className="muted">导出包含已保存的聊天正文和时间，请妥善保存文件。</p>
+            {exportResult && <p role="status">{exportResult}</p>}
           </section>
         </div>
       </>

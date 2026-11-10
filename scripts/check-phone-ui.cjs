@@ -17,6 +17,7 @@ const assert = require('node:assert/strict');
       window.androidBridge = {};
       window.__tlsFailure = false;
       window.__generationCalls = 0;
+      window.__cancelExport = true;
       const id = '00000000-0000-4000-8000-000000000004';
       window.Capacitor = {
         PluginHeaders: [
@@ -27,8 +28,14 @@ const assert = require('node:assert/strict');
               rtype: 'promise',
             })),
           },
+          { name: 'ChatExport', methods: [{ name: 'save', rtype: 'promise' }] },
         ],
-        async nativePromise(_plugin, method, options = {}) {
+        async nativePromise(plugin, method, options = {}) {
+          if (plugin === 'ChatExport' && method === 'save') {
+            if (window.__cancelExport) return { saved: false };
+            window.__chatExport = options;
+            return { saved: true };
+          }
           let config = JSON.parse(localStorage.getItem('test:pairing') || 'null');
           if (method === 'connection')
             return { configured: !!config, server: config?.server || '' };
@@ -79,13 +86,31 @@ const assert = require('node:assert/strict');
               },
             };
           if (options.path.includes('/messages?'))
-            return { status: 200, data: { messages: [], nextCursor: 0, hasMore: false } };
+            return {
+              status: 200,
+              data: {
+                messages: [
+                  {
+                    id: '00000000-0000-4000-8000-000000000005',
+                    sequence: 1,
+                    conversationId: id,
+                    clientRequestId: null,
+                    role: 'user',
+                    text: '合成手机消息 ☕',
+                    status: 'saved',
+                    createdAt: '2026-11-10T02:00:00.000Z',
+                  },
+                ],
+                nextCursor: 1,
+                hasMore: false,
+              },
+            };
           if (options.path.endsWith('/reply')) window.__generationCalls++;
           throw new Error('Unexpected mock request');
         },
       };
     });
-    await page.goto('http://127.0.0.1:17400');
+    await page.goto(`http://127.0.0.1:${process.env.WEB_PORT || 17400}`);
     await page.waitForLoadState('networkidle');
     await page.getByRole('button', { name: '设置', exact: true }).click();
     await page.getByRole('heading', { name: '连接我的电脑' }).waitFor();
@@ -145,12 +170,25 @@ const assert = require('node:assert/strict');
     const bottom = await page.getByRole('navigation', { name: '主导航' }).boundingBox();
     const viewport = page.viewportSize();
     assert.ok(top.y >= 36 && bottom.y + bottom.height <= viewport.height - 24);
+    await page.getByRole('button', { name: '设置', exact: true }).click();
+    const exportButton = page.getByRole('button', { name: '导出聊天记录（TXT）' });
+    await exportButton.click();
+    await page.getByText('已取消保存。', { exact: true }).waitFor();
+    await page.evaluate(() => {
+      window.__cancelExport = false;
+    });
+    await exportButton.click();
+    await page.getByText('聊天记录已保存。', { exact: true }).waitFor();
+    const exported = await page.evaluate(() => window.__chatExport);
+    assert.match(exported.name, /\.txt$/);
+    assert.match(exported.text, /你\n合成手机消息 ☕/);
+    assert.ok(!exported.text.includes(pairing.token));
     await mkdir('.local/screenshots', { recursive: true });
     await page.screenshot({ path: '.local/screenshots/android-connection-fixture.png' });
     assert.equal(await page.evaluate(() => window.__generationCalls), 0);
     assert.deepEqual(errors, []);
     console.log(
-      'PASS: simulated Android connection UI, invalid configuration, wrong credential, successful setup, cleared credential input, reload and TLS error; no model requests. This is not a real-device test.',
+      'PASS: simulated Android connection, TLS errors and TXT save/cancel; no model requests. This is not a real-device test.',
     );
   } finally {
     await browser.close();

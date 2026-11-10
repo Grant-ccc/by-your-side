@@ -80,6 +80,22 @@ npm run test:local-chat
 
 GitHub Actions 使用隔离的临时 MySQL 服务，执行类型检查、测试、构建、迁移、重复迁移与真库测试；工作流内的测试账号仅用于临时服务，不是部署凭据。
 
+### 导出聊天与演练恢复
+
+在 App 的「设置 → 当前会话」点「导出聊天记录（TXT）」。文件包含已保存消息的北京时间、发言人和正文。网页发起下载，安卓打开系统保存界面。系统记录、未保存的草稿和连接配置不写进文件。导出沿用当前会话的分页读取，上限为 10,000 条，超出时会明确提示而不会生成残缺文件。[Android 文件保存说明](https://developer.android.com/training/data-storage/shared/documents-files)
+
+在项目根目录运行。备份读取本项目的 Compose MySQL 服务，执行时请避开数据库迁移。ZIP 输出到被 Git 忽略的 `.local/backups/`，包含带校验值的数据库快照。
+
+```sh
+npm run db:backup
+npm run db:restore -- .local/backups/替换为实际文件名.zip
+npm run test:backup
+```
+
+恢复使用本机 `mysql:8.4` 镜像新建独立容器，校验 ZIP 和恢复后的表与数据。容器无网络、无主机端口，工具只接受空白恢复目标。成功后按终端提示用 `docker exec` 查看副本，完成演练后可删除该副本。备份包含会话、消息、回复关联、版本、用量和费用快照，不包含数据库账户、环境文件、设备配对凭据或模型密钥。TXT 和 ZIP 都包含可读私聊，请保存在你控制的位置。[MySQL SQL 备份说明](https://dev.mysql.com/doc/refman/8.4/en/mysqldump-sql-format.html)
+
+恢复命令只用于验证和取回数据。旧费用快照留在隔离副本，当前 App 继续使用原数据库和原费用账本。如果以后需要切换现用数据库，先与供应商账单对齐费用和未结算请求，再恢复模型调用。
+
 ## M1 环境检查
 
 检查实际 Node.js 与包管理器版本、MySQL 服务与可用账号、JDK、Android Studio/SDK 和真机连接方式。选择依赖时核对当前稳定文档，记录版本与锁文件。先本机开发，再决定云端托管。

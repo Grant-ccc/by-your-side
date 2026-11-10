@@ -1,5 +1,5 @@
 const { chromium } = require('playwright');
-const { mkdir } = require('node:fs/promises');
+const { mkdir, readFile } = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
@@ -272,8 +272,47 @@ const baseUrl = `http://127.0.0.1:${process.env.WEB_PORT || 17400}`;
     assert.equal(replacementCalls, 2, 'reload and read-only checks must not generate again');
     assert.deepEqual(errors, []);
     await page.screenshot({ path: '.local/screenshots/react-ai-fixture.png' });
+    await page.getByRole('button', { name: '设置', exact: true }).click();
+    const exportRows = [
+      ...saved,
+      {
+        ...saved.at(-1),
+        id: randomUUID(),
+        sequence: saved.length + 1,
+        role: 'system',
+        text: 'INTERNAL_ONLY',
+      },
+      {
+        ...saved.at(-1),
+        id: randomUUID(),
+        sequence: saved.length + 2,
+        status: 'waiting',
+        text: 'UNSAVED_ONLY',
+      },
+    ];
+    const exportCursors = [];
+    await page.route(/\/messages\?after=\d+&limit=100$/, (route) => {
+      const after = Number(new URL(route.request().url()).searchParams.get('after'));
+      exportCursors.push(after);
+      const messages = exportRows.filter((message) => message.sequence > after).slice(0, 2);
+      const nextCursor = messages.at(-1)?.sequence || after;
+      return route.fulfill({
+        json: { messages, nextCursor, hasMore: nextCursor < exportRows.length },
+      });
+    });
+    const pendingDownload = page.waitForEvent('download');
+    await page.getByRole('button', { name: '导出聊天记录（TXT）' }).click();
+    const download = await pendingDownload;
+    assert.match(download.suggestedFilename(), /^在你身边-聊天记录-\d{4}-\d{2}-\d{2}\.txt$/);
+    const exported = await readFile(await download.path(), 'utf8');
+    assert.ok(exported.includes(multiline));
+    assert.ok(exported.includes('李泽言\n模拟的新回复，只替换最后一条。'));
+    for (const excluded of ['INTERNAL_ONLY', 'UNSAVED_ONLY', conversationId, requestIds[0]])
+      assert.ok(!exported.includes(excluded));
+    assert.ok(exportCursors.length > 1);
+    assert.equal(replyCalls, 3);
     console.log(
-      'PASS: live health UI; simulated unavailable UI; save retry, AI typing/reply/retry/reload, replacement failure and read-only recovery, navigation and narrow layout. AI is mocked; no paid calls.',
+      'PASS: chat, replacement, and paginated TXT download without internal fields. AI is mocked; no paid calls.',
     );
   } finally {
     await browser.close();

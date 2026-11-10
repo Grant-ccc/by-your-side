@@ -27,6 +27,9 @@
     "db:up": "docker compose --env-file .env.local up -d --wait mysql",
     "db:down": "docker compose --env-file .env.local stop mysql",
     "db:migrate": "tsx apps/server/src/migrate.ts",
+    "db:backup": "python scripts/db_backup.py backup",
+    "db:restore": "python scripts/db_backup.py restore",
+    "test:backup": "python scripts/test_backup.py",
     "db:check": "tsx apps/server/src/db-check.ts"
   },
   "devDependencies": {

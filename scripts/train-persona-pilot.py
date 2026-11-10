@@ -1,4 +1,4 @@
-"""Run a small, offline LoRA preference pilot using local, synthetic dialogues."""
+"""Compare offline LoRA preference and supervised training on synthetic dialogues."""
 
 import argparse
 import json
@@ -75,6 +75,7 @@ def main():
     parser.add_argument("--pairs", required=True, type=Path)
     parser.add_argument("--holdout", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--objective", choices=("preference", "sft"), default="preference")
     args = parser.parse_args()
 
     pairs = read_json(args.pairs)["pairs"]
@@ -109,10 +110,14 @@ def main():
         index = step % len(paths)
         chosen, rejected = paths[index]
         optimizer.zero_grad(set_to_none=True)
-        delta = score(model, chosen) - score(model, rejected) - reference[index]
-        loss = -torch.nn.functional.logsigmoid(0.1 * delta)
+        chosen_score = score(model, chosen)
+        if args.objective == "sft":
+            loss = -chosen_score / chosen[1].sum()
+        else:
+            delta = chosen_score - score(model, rejected) - reference[index]
+            loss = -torch.nn.functional.logsigmoid(0.1 * delta)
         if not math.isfinite(loss.item()):
-            raise RuntimeError("Non-finite preference loss")
+            raise RuntimeError("Non-finite training loss")
         loss.backward()
         optimizer.step()
         losses.append(loss.item())
@@ -127,6 +132,7 @@ def main():
     model.save_pretrained(args.output / "adapter", safe_serialization=True)
     after = sample(model, tokenizer, holdout)
     report = {
+        "objective": args.objective,
         "steps": len(losses),
         "trainableParameters": sum(p.numel() for p in trainable),
         "losses": losses,
@@ -139,7 +145,7 @@ def main():
         ],
     }
     (args.output / "report.json").write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    print(json.dumps({key: report[key] for key in ("steps", "trainableParameters", "preferenceMargins")}), flush=True)
+    print(json.dumps({key: report[key] for key in ("objective", "steps", "trainableParameters", "preferenceMargins")}), flush=True)
 
 
 if __name__ == "__main__":

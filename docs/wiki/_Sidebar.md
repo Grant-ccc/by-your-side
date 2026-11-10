@@ -11,6 +11,7 @@
 - [开发与交付](Development.md)
 - [DeepSeek 聊天配置](AI-Setup.md)
 - [李泽言人设样本](Character-Samples.md)
+- [李泽言大型样本来源](Character-Sources.md)
 - [通知与成本](Notifications-and-Costs.md)
 - [决策与待定项](Decisions.md)
 

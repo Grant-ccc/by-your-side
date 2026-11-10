@@ -20,6 +20,7 @@
 | [开发与交付](Development.md) | 现有项目运行方法、未来目录、检查与文档维护 |
 | [DeepSeek 聊天配置](AI-Setup.md) | 本机密钥、文字预算、失败与验证边界 |
 | [李泽言人设样本](Character-Samples.md) | 日常对话摘记、官方情境、回看入口 |
+| [李泽言大型样本来源](Character-Sources.md) | 大型合集、短信直达分集与可筛选的来源索引 |
 | [通知与成本](Notifications-and-Costs.md) | vivo 通知验证、生成费用与预算限制 |
 | [决策与待定项](Decisions.md) | 已决定、建议、未验证事项 |
 

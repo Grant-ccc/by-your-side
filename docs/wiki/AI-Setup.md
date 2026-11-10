@@ -39,7 +39,25 @@
 
 用现有 `deepseek-flash` 和 v5.2，在四组新的合成场景上对照原提示词与附加两组偏好样本的提示词。每组每种方式各聊两轮，共 16 次调用。加入样本后，取快递场景的两次追问消失，猫抢被子的场景增加了两次追问。两种方式各八条回复，索取进一步回答的问句都出现三次。加入样本后，电影场景的二选一消失，但猫抢被子的场景出现了二选一。低落场景仍用比较泛的陪伴话术。每种方式在每个场景只生成一条路径，这批对照未显示稳定改善。
 
-这轮用偏好样本做上下文对照，模型权重没有变化。角色模型微调仍需要更多经过评阅的样本和可训练环境。实验使用项目模型适配器，在应用数据库与费用账本之外执行，结果留在本机。
+这轮用偏好样本做上下文对照，模型权重没有变化。实验使用项目模型适配器，在应用数据库与费用账本之外执行，结果留在本机。
+
+## 本机 LoRA 小样本试验
+
+训练脚本在项目根目录的 `scripts/train-persona-pilot.py`。输入是本机 `.local/` 的偏好对照和独立留出场景。使用 Qwen2.5-0.5B-Instruct 的公开权重，在 CPU 上冻结底座，只训练注意力查询和值矩阵旁的 LoRA 参数。训练对比同一段合成对话下的两条路径，按用户评过的偏好调整角色回复的分数，用户消息只作为上下文。未确认的样本继续留在评阅材料中。模型权重来自 Qwen 的 ModelScope 仓库，SHA-256 与 Qwen 在 Hugging Face 发布的权重一致。[Qwen 模型](https://modelscope.cn/models/Qwen/Qwen2.5-0.5B-Instruct) · [官方权重校验值](https://huggingface.co/Qwen/Qwen2.5-0.5B-Instruct/blob/main/model.safetensors)
+
+复跑使用隔离环境中的 `torch==2.8.0+cpu`、`transformers==4.57.6` 和 `peft==0.18.1`。每次指定新的输出目录，避免覆盖旧实验。
+
+```powershell
+& .local/persona-venv/Scripts/python.exe scripts/train-persona-pilot.py `
+  --model-dir .local/qwen2.5-0.5b-instruct `
+  --pairs .local/persona-preferences.json `
+  --holdout .local/persona-holdout.json `
+  --output .local/persona-pilot-next
+```
+
+2026-11-10 在本机跑完 8 步。两组偏好轮流用于训练，共更新 270,336 个 LoRA 参数。伞场景中，已选路径相对于另一条路径的对数概率差从 −7.91 变为 79.00。这个数值只说明模型更偏向见过的训练答案。
+
+四组留出场景各比较两轮。微调后的模型仍会把对方做过的事说成自己做的，也会忽略她已经描述的情节或低落情绪。未观察到稳定的角色语气改善。检查点和完整报告在 `.local/persona-pilot-01/`，用于复现实验。T09 仍未通过。
 
 ## 本机配置
 

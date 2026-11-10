@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import type { Pool, PoolConnection, RowDataPacket } from 'mysql2/promise';
-import type { Message } from '@bys/shared';
+import type { Pool, PoolConnection, ResultSetHeader, RowDataPacket } from 'mysql2/promise';
+import type { Message, ReplaceReply } from '@bys/shared';
 import {
   AiError,
   context,
@@ -9,7 +9,7 @@ import {
   type AiConfig,
   type AiProvider,
 } from './ai-provider.js';
-import { LOCAL_RELATIONSHIP, LOCAL_USER, StoreError } from './store.js';
+import { LOCAL_RELATIONSHIP, LOCAL_USER, StoreError, toMessage } from './store.js';
 
 export interface ReplyResult {
   state: 'idle' | 'running' | 'failed' | 'succeeded';
@@ -18,8 +18,13 @@ export interface ReplyResult {
 }
 export interface ChatAi {
   configured: boolean;
-  status(conversationId: string, sourceId: string): Promise<ReplyResult>;
-  reply(conversationId: string, sourceId: string, retry: boolean): Promise<ReplyResult>;
+  status(conversationId: string, sourceId: string, replacement?: boolean): Promise<ReplyResult>;
+  reply(
+    conversationId: string,
+    sourceId: string,
+    retry: boolean,
+    replacement?: ReplaceReply,
+  ): Promise<ReplyResult>;
   budget(): Promise<{ limit: number; spent: number; reserved: number; currency: string }>;
 }
 const round = (n: number) => Math.round(n * 1e6) / 1e6;
@@ -34,31 +39,20 @@ function period() {
   }).formatToParts(new Date());
   return `${parts.find((p) => p.type === 'year')!.value}-${parts.find((p) => p.type === 'month')!.value}`;
 }
-function toMessage(row: RowDataPacket): Message {
-  return {
-    id: row.id,
-    sequence: Number(row.sequence),
-    conversationId: row.conversation_id,
-    clientRequestId: row.client_request_id,
-    role: row.role,
-    text: row.text,
-    status: row.status,
-    createdAt: new Date(row.created_at).toISOString(),
-    replyToMessageId: row.reply_to_message_id,
-  };
-}
 function failed(code: string): ReplyResult {
   return {
     state: 'failed',
     error: {
       code,
-      retryable: code !== 'AI_UNCERTAIN',
+      retryable: !['AI_UNCERTAIN', 'AI_NEWER_MESSAGE'].includes(code),
       message:
         code === 'AI_UNCERTAIN'
           ? '调用结果尚不确定，可能已计费。不会自动重试；请先核对DeepSeek 账单。'
           : code === 'AI_RATE_LIMIT'
             ? '模型暂时繁忙，可以稍后手动重试。'
-            : '请核对本机模型配置、密钥和账户余额，再手动重试。',
+            : code === 'AI_NEWER_MESSAGE'
+              ? '这期间已收到更新的消息，原回复已保留，本次模型用量仍计入预算。'
+              : '请核对本机模型配置、密钥和账户余额，再手动重试。',
     },
   };
 }
@@ -86,11 +80,8 @@ export class MysqlChatAi implements ChatAi {
     conversationId: string,
     sourceId: string,
   ): Promise<ReplyResult> {
-    const [replies] = await db.execute<RowDataPacket[]>(
-      'SELECT * FROM messages WHERE conversation_id=? AND reply_to_message_id=?',
-      [conversationId, sourceId],
-    );
-    if (replies[0]) return { state: 'succeeded', message: toMessage(replies[0]) };
+    const message = await this.savedReply(db, conversationId, sourceId);
+    if (message) return { state: 'succeeded', message };
     const [runs] = await db.execute<RowDataPacket[]>(
       'SELECT state,error_code FROM generation_runs WHERE conversation_id=? AND source_message_id=? ORDER BY attempt DESC LIMIT 1',
       [conversationId, sourceId],
@@ -99,9 +90,42 @@ export class MysqlChatAi implements ChatAi {
     if (runs[0].state === 'running') return { state: 'running' };
     return failed(runs[0].error_code || 'AI_UNCERTAIN');
   }
-  async status(conversationId: string, sourceId: string) {
+  private async savedReply(db: Pool | PoolConnection, conversationId: string, sourceId: string) {
+    const [rows] = await db.execute<RowDataPacket[]>(
+      "SELECT * FROM messages WHERE conversation_id=? AND reply_to_message_id=? AND role='assistant'",
+      [conversationId, sourceId],
+    );
+    return rows[0] ? toMessage(rows[0]) : undefined;
+  }
+  private async replacementResult(
+    db: Pool | PoolConnection,
+    conversationId: string,
+    sourceId: string,
+    key?: string,
+  ): Promise<ReplyResult> {
+    const [runs] = await db.execute<RowDataPacket[]>(
+      `SELECT state,error_code FROM generation_runs WHERE conversation_id=? AND source_message_id=?
+       AND request_key LIKE ? ORDER BY attempt DESC LIMIT 1`,
+      [conversationId, sourceId, key ?? 'replace:%'],
+    );
+    const message = await this.savedReply(db, conversationId, sourceId);
+    const run = runs[0];
+    if (!run) return { state: 'idle', message };
+    if (run.state === 'running' || run.state === 'succeeded') return { state: run.state, message };
+    return { ...failed(run.error_code || 'AI_UNCERTAIN'), message };
+  }
+  private async hasNewerUserMessage(db: PoolConnection, conversationId: string, sequence: number) {
+    const [rows] = await db.execute<RowDataPacket[]>(
+      "SELECT id FROM messages WHERE conversation_id=? AND role='user' AND sequence>? LIMIT 1",
+      [conversationId, sequence],
+    );
+    return rows.length > 0;
+  }
+  async status(conversationId: string, sourceId: string, replacement = false) {
     await this.source(this.pool, conversationId, sourceId);
-    return this.result(this.pool, conversationId, sourceId);
+    return replacement
+      ? this.replacementResult(this.pool, conversationId, sourceId)
+      : this.result(this.pool, conversationId, sourceId);
   }
   async budget() {
     const [rows] = await this.pool.execute<RowDataPacket[]>(
@@ -115,7 +139,12 @@ export class MysqlChatAi implements ChatAi {
       currency: 'CNY',
     };
   }
-  async reply(conversationId: string, sourceId: string, retry: boolean): Promise<ReplyResult> {
+  async reply(
+    conversationId: string,
+    sourceId: string,
+    retry: boolean,
+    replacement?: ReplaceReply,
+  ): Promise<ReplyResult> {
     if (!this.configured)
       throw new AiError('AI_NOT_CONFIGURED', '尚未配置模型密钥，消息已保存，暂时不能生成回复。');
     const db = await this.pool.getConnection();
@@ -126,18 +155,24 @@ export class MysqlChatAi implements ChatAi {
       locked = Number(locks[0]?.acquired) === 1;
       if (!locked) throw new AiError('AI_BUSY', '这段对话正在生成回复，请稍后查看记录。', 409);
       const source = await this.source(db, conversationId, sourceId);
-      const previous = await this.result(db, conversationId, sourceId);
-      if (
-        previous.state === 'succeeded' ||
-        previous.state === 'running' ||
-        (previous.state === 'failed' && (!retry || !previous.error?.retryable))
-      )
-        return previous;
-      const [newer] = await db.execute<RowDataPacket[]>(
-        "SELECT id FROM messages WHERE conversation_id=? AND role='user' AND sequence>? LIMIT 1",
-        [conversationId, source.sequence],
-      );
-      if (newer.length)
+      const requestKey = replacement ? `replace:${sourceId}:${replacement.requestId}` : undefined;
+      if (replacement) {
+        const replay = await this.replacementResult(db, conversationId, sourceId, requestKey);
+        if (replay.state !== 'idle') return replay;
+        if (!replay.message || replay.message.version !== replacement.version)
+          throw new AiError('AI_REPLY_CHANGED', '这条回复已经变化，请先查看最新记录。', 409);
+        const latest = await this.replacementResult(db, conversationId, sourceId);
+        if (latest.state === 'running' || latest.error?.code === 'AI_UNCERTAIN') return latest;
+      } else {
+        const previous = await this.result(db, conversationId, sourceId);
+        if (
+          previous.state === 'succeeded' ||
+          previous.state === 'running' ||
+          (previous.state === 'failed' && (!retry || !previous.error?.retryable))
+        )
+          return previous;
+      }
+      if (await this.hasNewerUserMessage(db, conversationId, source.sequence))
         throw new AiError('AI_NEWER_MESSAGE', '已有更新的消息，请让他一起回复最新一条。', 409);
       // No second generation while an earlier call is unresolved after a process interruption.
       const [pending] = await db.execute<RowDataPacket[]>(
@@ -191,7 +226,7 @@ export class MysqlChatAi implements ChatAi {
           [
             runId,
             conversationId,
-            `${sourceId}:${attempt}`,
+            requestKey ?? `${sourceId}:${attempt}`,
             this.config.model,
             reserve,
             sourceId,
@@ -232,17 +267,33 @@ export class MysqlChatAi implements ChatAi {
       }
       await db.beginTransaction();
       try {
-        await db.execute(
-          `INSERT INTO messages (id,conversation_id,role,text,status,reply_to_message_id,created_at)
-          VALUES (?,?,'assistant',?,'saved',?,UTC_TIMESTAMP(3))`,
-          [randomUUID(), conversationId, generated.text, sourceId],
-        );
+        let settlementError: string | null = null;
+        if (replacement) {
+          // Message writes take a shared lock here, so a newer turn cannot slip past this check.
+          await db.execute('SELECT id FROM conversations WHERE id=? FOR UPDATE', [conversationId]);
+          if (await this.hasNewerUserMessage(db, conversationId, source.sequence)) {
+            settlementError = 'AI_NEWER_MESSAGE';
+          } else {
+            const [update] = await db.execute<ResultSetHeader>(
+              `UPDATE messages SET text=?,version=version+1
+               WHERE conversation_id=? AND reply_to_message_id=? AND role='assistant' AND version=?`,
+              [generated.text, conversationId, sourceId, replacement.version],
+            );
+            if (update.affectedRows !== 1) throw new Error('Reply changed while generating');
+          }
+        } else {
+          await db.execute(
+            `INSERT INTO messages (id,conversation_id,role,text,status,reply_to_message_id,created_at)
+            VALUES (?,?,'assistant',?,'saved',?,UTC_TIMESTAMP(3))`,
+            [randomUUID(), conversationId, generated.text, sourceId],
+          );
+        }
         await this.settle(
           db,
           runId,
           reserve,
           cost(generated.promptTokens, generated.completionTokens),
-          null,
+          settlementError,
           generated,
         );
         await db.commit();
@@ -250,7 +301,9 @@ export class MysqlChatAi implements ChatAi {
         await db.rollback();
         throw error;
       }
-      return await this.result(db, conversationId, sourceId);
+      return replacement
+        ? await this.replacementResult(db, conversationId, sourceId, requestKey)
+        : await this.result(db, conversationId, sourceId);
     } finally {
       if (locked) {
         try {
@@ -271,7 +324,7 @@ export class MysqlChatAi implements ChatAi {
     usage?: { promptTokens: number; completionTokens: number },
   ) {
     // Failure settlement is atomic too; unknown outcomes consume the conservative reservation.
-    const ownTransaction = !!code;
+    const ownTransaction = !usage;
     if (ownTransaction) await db.beginTransaction();
     try {
       await db.execute(

@@ -6,6 +6,7 @@ import {
   MessageSchema,
   type Conversation,
   type Message,
+  type ReplaceReply,
   type ServiceHealth,
   type SendMessage,
 } from '@bys/shared';
@@ -67,18 +68,25 @@ export async function sendMessage(id: string, input: SendMessage): Promise<Messa
 export async function aiInfo() {
   return AiInfoSchema.parse(await request('/api/ai'));
 }
-export async function replyStatus(id: string, messageId: string) {
+export async function replyStatus(id: string, messageId: string, replacement = false) {
   return ReplyResultSchema.parse(
-    await request(`/api/conversations/${id}/messages/${messageId}/reply`),
+    await request(
+      `/api/conversations/${id}/messages/${messageId}/reply${replacement ? '?replacement=1' : ''}`,
+    ),
   );
 }
-export async function generateReply(id: string, messageId: string, retry = false) {
+export async function generateReply(
+  id: string,
+  messageId: string,
+  retry = false,
+  replacement?: ReplaceReply,
+) {
   return ReplyResultSchema.parse(
     await request(
       `/api/conversations/${id}/messages/${messageId}/reply`,
       {
         method: 'POST',
-        body: JSON.stringify({ retry }),
+        body: JSON.stringify({ retry, replacement }),
       },
       60000,
     ),

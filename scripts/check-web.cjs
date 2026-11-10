@@ -3,6 +3,7 @@ const { mkdir } = require('node:fs/promises');
 const path = require('node:path');
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const baseUrl = `http://127.0.0.1:${process.env.WEB_PORT || 17400}`;
 (async () => {
   const browser = await chromium.launch({
     headless: true,
@@ -14,9 +15,9 @@ const { randomUUID } = require('node:crypto');
     errors = [];
   page.on('pageerror', (e) => errors.push(e.message));
   try {
-    await page.goto('http://127.0.0.1:17400');
+    await page.goto(baseUrl);
     await page.waitForLoadState('networkidle');
-    const liveHealth = await (await page.request.get('http://127.0.0.1:17400/health')).json();
+    const liveHealth = await (await page.request.get(`${baseUrl}/health`)).json();
     await page.getByRole('button', { name: '聊天', exact: true }).click();
     if (liveHealth.database === 'connected') {
       await page
@@ -159,17 +160,43 @@ const { randomUUID } = require('node:crypto');
     );
     let replyCalls = 0,
       releaseReply,
-      replyFailure = false;
+      replyFailure = false,
+      replacementCalls = 0,
+      replacementStatus = { state: 'idle' };
     let gate = new Promise((resolve) => {
       releaseReply = resolve;
     });
-    await page.route('**/messages/*/reply', async (route) => {
-      const sourceId = new URL(route.request().url()).pathname.split('/').at(-2);
+    await page.route(/\/messages\/[^/]+\/reply(?:\?replacement=1)?$/, async (route) => {
+      const url = new URL(route.request().url());
+      const sourceId = url.pathname.split('/').at(-2);
       const existing = saved.find((m) => m.replyToMessageId === sourceId);
-      if (route.request().method() === 'GET')
+      if (route.request().method() === 'GET') {
+        if (url.searchParams.has('replacement'))
+          return route.fulfill({ json: { ...replacementStatus, message: existing } });
         return route.fulfill({
           json: existing ? { state: 'succeeded', message: existing } : { state: 'idle' },
         });
+      }
+      const { replacement } = route.request().postDataJSON();
+      if (replacement) {
+        assert.equal(replacement.version, existing.version);
+        replacementCalls++;
+        if (replacementCalls === 1) {
+          replacementStatus = {
+            state: 'failed',
+            error: {
+              code: 'AI_RATE_LIMIT',
+              message: '模型暂时繁忙，可以稍后手动重试。',
+              retryable: true,
+            },
+          };
+          return route.fulfill({ json: replacementStatus });
+        }
+        existing.text = '模拟的新回复，只替换最后一条。';
+        existing.version++;
+        replacementStatus = { state: 'succeeded' };
+        return route.abort('failed'); // Response lost after saving the revised message.
+      }
       replyCalls++;
       await gate;
       if (replyFailure)
@@ -193,6 +220,7 @@ const { randomUUID } = require('node:crypto');
         status: 'saved',
         createdAt: new Date().toISOString(),
         replyToMessageId: sourceId,
+        version: 1,
       };
       if (!existing) saved.push(message);
       return route.fulfill({ json: { state: 'succeeded', message } });
@@ -222,10 +250,30 @@ const { randomUUID } = require('node:crypto');
     await page.getByRole('button', { name: '重新尝试回复', exact: true }).click();
     await page.getByText('模拟回复：我听着，慢慢说。', { exact: true }).nth(1).waitFor();
     assert.equal(replyCalls, 3);
+    const regenerate = page.getByRole('button', { name: '重生成最新回复', exact: true });
+    const priorReply = page.getByText('模拟回复：我听着，慢慢说。', { exact: true });
+    assert.equal(await regenerate.count(), 1);
+    await regenerate.click();
+    await page.getByText('模型暂时繁忙，可以稍后手动重试。', { exact: true }).waitFor();
+    assert.equal(await priorReply.count(), 2);
+    await regenerate.click();
+    const checkReplacement = page.getByRole('button', { name: '检查重生成结果', exact: true });
+    await checkReplacement.waitFor();
+    assert.equal(await priorReply.count(), 2);
+    assert.equal(await regenerate.count(), 0);
+    await checkReplacement.click();
+    const revised = page.getByText('模拟的新回复，只替换最后一条。', { exact: true });
+    await revised.waitFor();
+    assert.equal(await priorReply.count(), 1);
+    assert.equal(replacementCalls, 2);
+    await page.reload();
+    await page.getByRole('button', { name: '聊天', exact: true }).click();
+    await revised.waitFor();
+    assert.equal(replacementCalls, 2, 'reload and read-only checks must not generate again');
     assert.deepEqual(errors, []);
     await page.screenshot({ path: '.local/screenshots/react-ai-fixture.png' });
     console.log(
-      'PASS: live health UI; simulated unavailable UI; fixture save retry, AI typing/reply/retry/reload, navigation and narrow layout; zero page errors. AI is mocked; no paid calls.',
+      'PASS: live health UI; simulated unavailable UI; save retry, AI typing/reply/retry/reload, replacement failure and read-only recovery, navigation and narrow layout. AI is mocked; no paid calls.',
     );
   } finally {
     await browser.close();

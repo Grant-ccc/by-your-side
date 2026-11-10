@@ -11,10 +11,11 @@ import {
   MAX_OUTPUT,
   type AiConfig,
   type AiProvider,
+  type ChatTurn,
 } from '../src/ai-provider.js';
 
 test(
-  'real MySQL AI ledger: persistence, dedupe, concurrency, retries, unknown outcomes, ownership and budget',
+  'real MySQL AI ledger: persistence, dedupe, concurrency, retries, replacement, ownership and budget',
   { skip: process.env.TEST_MYSQL !== '1' },
   async () => {
     // Isolated synthetic principal, no paid requests and no changes to the user's budget or chats.
@@ -33,15 +34,18 @@ test(
     let calls = 0,
       fail = '',
       unblock: (() => void) | null = null;
+    let generatedText = '测试回复，不是真实 AI。';
+    let lastTurns: ChatTurn[] = [];
     const provider: AiProvider = {
-      async complete() {
+      async complete(turns) {
         calls++;
+        lastTurns = turns;
         if (unblock)
           await new Promise<void>((resolve) => {
             unblock = resolve;
           });
         if (fail) throw new AiError(fail, 'fixture');
-        return { text: '测试回复，不是真实 AI。', promptTokens: 1000, completionTokens: 12 };
+        return { text: generatedText, promptTokens: 1000, completionTokens: 12 };
       },
     };
     const ai = new MysqlChatAi(pool, config, provider, { userId, relationshipId });
@@ -94,6 +98,83 @@ test(
         () => new MysqlChatAi(pool, config, provider).status(first.conversationId, first.sourceId),
         { code: 'NOT_FOUND' },
       );
+      const replace = (version: number, requestId = randomUUID()) =>
+        ai.reply(first.conversationId, first.sourceId, false, { version, requestId });
+      const replacementStatus = () => ai.status(first.conversationId, first.sourceId, true);
+      assert.equal((await replacementStatus()).state, 'idle');
+      assert.equal(success.message?.version, 1);
+      await assert.rejects(
+        () =>
+          new MysqlChatAi(pool, { ...config, monthlyLimit: 0 }, provider, {
+            userId,
+            relationshipId,
+          }).reply(first.conversationId, first.sourceId, false, {
+            version: 1,
+            requestId: randomUUID(),
+          }),
+        { code: 'AI_BUDGET_EXCEEDED' },
+      );
+      assert.equal(calls, 1);
+      const failedRequest = randomUUID();
+      fail = 'AI_RATE_LIMIT';
+      assert.equal((await replace(1, failedRequest)).state, 'failed');
+      assert.equal((await replacementStatus()).message?.text, success.message?.text);
+      fail = '';
+      const beforeReplay = calls;
+      assert.equal((await replace(1, failedRequest)).state, 'failed');
+      assert.equal(calls, beforeReplay);
+
+      generatedText = '这一句替换了原来的回复。';
+      const successfulRequest = randomUUID();
+      const revised = await replace(1, successfulRequest);
+      assert.equal(revised.state, 'succeeded');
+      assert.equal(revised.message?.version, 2);
+      assert.equal(revised.message?.id, success.message?.id);
+      assert.equal(revised.message?.sequence, success.message?.sequence);
+      assert.equal(revised.message?.createdAt, success.message?.createdAt);
+      assert.equal(revised.message?.text, generatedText);
+      assert.equal((await replacementStatus()).message?.text, generatedText);
+      assert.equal((await replace(1, successfulRequest)).message?.version, 2);
+      assert.equal(calls, beforeReplay + 1);
+      await assert.rejects(() => replace(1), { code: 'AI_REPLY_CHANGED' });
+
+      const spentBeforeConcurrentReplacement = (await ai.budget()).spent;
+      unblock = () => {};
+      const replacementInFlight = replace(2);
+      for (let i = 0; i < 100; i++) {
+        if ((await replacementStatus()).state === 'running') break;
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }
+      assert.equal((await replacementStatus()).state, 'running');
+      const beforeBusy = calls;
+      await assert.rejects(() => replace(2), { code: 'AI_BUSY' });
+      const nextId = randomUUID();
+      await pool.execute(
+        "INSERT INTO messages (id,conversation_id,role,text) VALUES (?,?,'user',?)",
+        [nextId, first.conversationId, '接下来的一条消息'],
+      );
+      unblock!();
+      unblock = null;
+      assert.equal((await replacementInFlight).error?.code, 'AI_NEWER_MESSAGE');
+      assert.equal((await replacementStatus()).message?.version, 2);
+      const afterConcurrentReplacement = await ai.budget();
+      assert.ok(afterConcurrentReplacement.spent > spentBeforeConcurrentReplacement);
+      assert.equal(afterConcurrentReplacement.reserved, 0);
+      await assert.rejects(() => replace(2), { code: 'AI_NEWER_MESSAGE' });
+      assert.equal(calls, beforeBusy);
+      assert.equal((await ai.reply(first.conversationId, nextId, false)).state, 'succeeded');
+      const assistantTexts = lastTurns
+        .filter(({ role }) => role === 'assistant')
+        .map(({ content }) => content);
+      assert.deepEqual(assistantTexts, [generatedText]);
+      fail = 'AI_UNCERTAIN';
+      const nextReplacement = () =>
+        ai.reply(first.conversationId, nextId, false, { version: 1, requestId: randomUUID() });
+      assert.equal((await nextReplacement()).error?.retryable, false);
+      const beforeUncertain = calls;
+      fail = '';
+      assert.equal((await nextReplacement()).error?.code, 'AI_UNCERTAIN');
+      assert.equal(calls, beforeUncertain);
       const second = await create();
       fail = 'AI_RATE_LIMIT';
       assert.equal(

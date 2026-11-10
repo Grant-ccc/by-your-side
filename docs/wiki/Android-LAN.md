@@ -81,7 +81,8 @@ GitHub Actions 的 `Android trial APK` 工作流执行前端构建、Capacitor �
 | Java 检查与 APK 编译 | GitHub Actions 通过 | [修正版构建](https://github.com/Grant-ccc/by-your-side/actions/runs/38770819327)，制品摘要已核对 |
 | 手机安装与打开 | 用户截图已确认 | 2026-10-16，目标安卓设备可打开聊天和设置页 |
 | 手机连接、重开读取 | 连接未通过 | 配置已保存，提示无法连接；电脑同地址 HTTPS/MySQL 检查通过，需核对手机网络与可达性 |
-| 最新回复重生成、导出/恢复 | 未实现 | 后续 S3，不属于本轮新增功能 |
+| 最新回复重生成 | 已实现，待真机验收 | [试用版 T04](Trial-Scope.md#验收清单) |
+| 导出/恢复 | 未实现 | 后续 S3 |
 
 官方参考：[Capacitor 安卓环境](https://capacitorjs.com/docs/getting-started/environment-setup)、[自定义原生插件](https://capacitorjs.com/docs/android/custom-code)、[Android TLS](https://developer.android.com/privacy-and-security/security-ssl)。
 

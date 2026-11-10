@@ -9,6 +9,7 @@ import {
   type ReplyResult,
 } from '@bys/shared';
 import {
+  ApiRequestError,
   bootstrap,
   health,
   loadHistory,
@@ -22,6 +23,7 @@ import { isAndroid, getConnection, configureConnection, forgetConnection } from 
 
 type Page = 'home' | 'chat' | 'album' | 'settings' | 'memory' | 'trip';
 type Tab = '日常记录' | '习惯打卡' | '备忘录';
+type ReplacementStatus = Pick<ReplyResult, 'state' | 'error'> & { sourceId: string };
 const paths: Record<string, ReactNode> = {
   home: <path d="m2 10 10-8 10 8M5 9v13h14V9M10 22v-8h5v8" />,
   chat: (
@@ -136,6 +138,25 @@ function readOutbox(conversationId: string): SendMessage | null {
   }
 }
 
+function mergeReply(messages: Message[], reply: Message): Message[] {
+  const existing = messages.find((m) => m.id === reply.id);
+  if (!existing) return [...messages, reply].sort((a, b) => a.sequence - b.sequence);
+  if ((existing.version ?? 0) >= (reply.version ?? 0)) return messages;
+  return messages.map((m) => (m.id === reply.id ? reply : m));
+}
+
+function replacementCheckNeeded(sourceId: string): ReplacementStatus {
+  return {
+    sourceId,
+    state: 'running',
+    error: {
+      code: 'CHECK_NEEDED',
+      message: '重生成结果尚未确认，请先检查记录。',
+      retryable: false,
+    },
+  };
+}
+
 export function App() {
   const [pairing, setPairing] = useState('');
   const [connectionAddress, setConnectionAddress] = useState('');
@@ -149,8 +170,10 @@ export function App() {
   }, []);
   const [ai, setAi] = useState<AiInfo | null>(null);
   const [reply, setReply] = useState<ReplyResult | null>(null);
-  const [replying, setReplying] = useState(false);
+  const [replyPhase, setReplyPhase] = useState<'typing' | 'checking' | null>(null);
+  const replying = replyPhase !== null;
   const [replyError, setReplyError] = useState('');
+  const [replacement, setReplacement] = useState<ReplacementStatus | null>(null);
   const replyRef = useRef(false);
   const [page, setPage] = useState<Page>('home'),
     [tab, setTab] = useState<Tab>('日常记录');
@@ -195,15 +218,34 @@ export function App() {
       setMessages(data);
       setReply(null);
       setReplyError('');
+      setReplacement(null);
       // Read-only: refreshing must never start a paid generation.
       if (status.ai === 'configured') {
         const info = await aiInfo();
         if (epoch !== requestEpoch.current) return;
         setAi(info);
         const last = data.filter((m) => m.role === 'user').at(-1);
-        if (last && !data.some((m) => m.replyToMessageId === last.id)) {
-          const state = await replyStatus(selected.id, last.id);
-          if (epoch === requestEpoch.current) setReply(state);
+        if (last) {
+          const existing = data.find((m) => m.replyToMessageId === last.id);
+          if (!existing) {
+            const state = await replyStatus(selected.id, last.id);
+            if (epoch === requestEpoch.current) {
+              setReply(state);
+              const saved = state.message;
+              if (saved) setMessages((old) => mergeReply(old, saved));
+            }
+          } else if (existing.version) {
+            try {
+              const state = await replyStatus(selected.id, last.id, true);
+              if (epoch === requestEpoch.current) {
+                setReplacement({ sourceId: last.id, state: state.state, error: state.error });
+                const saved = state.message;
+                if (saved) setMessages((old) => mergeReply(old, saved));
+              }
+            } catch {
+              if (epoch === requestEpoch.current) setReplacement(replacementCheckNeeded(last.id));
+            }
+          }
         }
       } else setAi(null);
       const pending = readOutbox(selected.id);
@@ -233,21 +275,15 @@ export function App() {
   async function askForReply(messageId: string, retry = false, checkOnly = false) {
     if (replyRef.current || !conversationId) return;
     replyRef.current = true;
-    setReplying(true);
+    setReplyPhase(checkOnly ? 'checking' : 'typing');
     setReplyError('');
     try {
       const result = checkOnly
         ? await replyStatus(conversationId, messageId)
         : await generateReply(conversationId, messageId, retry);
       setReply(result);
-      if (result.message) {
-        const saved = result.message;
-        setMessages((old) =>
-          old.some((m) => m.id === saved.id)
-            ? old
-            : [...old, saved].sort((a, b) => a.sequence - b.sequence),
-        );
-      }
+      const saved = result.message;
+      if (saved) setMessages((old) => mergeReply(old, saved));
       void aiInfo()
         .then(setAi)
         .catch(() => {});
@@ -255,7 +291,54 @@ export function App() {
       setReplyError(error instanceof Error ? error.message : '回复结果尚未确认，请先检查记录。');
     } finally {
       replyRef.current = false;
-      setReplying(false);
+      setReplyPhase(null);
+    }
+  }
+  async function replaceLatest(sourceId: string, version?: number) {
+    if (!connected || !conversationId || replyRef.current || sendingRef.current || outbox) return;
+    replyRef.current = true;
+    setReplyPhase(version === undefined ? 'checking' : 'typing');
+    const epoch = requestEpoch.current;
+    try {
+      const result =
+        version === undefined
+          ? await replyStatus(conversationId, sourceId, true)
+          : await generateReply(conversationId, sourceId, false, {
+              version,
+              requestId: crypto.randomUUID(),
+            });
+      if (epoch !== requestEpoch.current) return;
+      setReplacement({ sourceId, state: result.state, error: result.error });
+      const saved = result.message;
+      if (saved) setMessages((old) => mergeReply(old, saved));
+      void aiInfo()
+        .then((info) => {
+          if (epoch === requestEpoch.current) setAi(info);
+        })
+        .catch(() => {});
+    } catch (error) {
+      if (epoch !== requestEpoch.current) return;
+      if (
+        version !== undefined &&
+        error instanceof ApiRequestError &&
+        error.status < 500 &&
+        !['AI_BUSY', 'AI_REPLY_CHANGED'].includes(error.code)
+      ) {
+        setReplacement({
+          sourceId,
+          state: 'failed',
+          error: {
+            code: error.code,
+            message: error.message,
+            retryable: error.code !== 'AI_NEWER_MESSAGE',
+          },
+        });
+      } else {
+        setReplacement(replacementCheckNeeded(sourceId));
+      }
+    } finally {
+      replyRef.current = false;
+      setReplyPhase(null);
     }
   }
   async function save(input: SendMessage) {
@@ -298,7 +381,9 @@ export function App() {
   const aiEnabled = service?.ai === 'configured';
   const modelStatus = !connected ? '服务待连接' : aiEnabled ? 'DeepSeek聊天' : 'AI 待配置';
   const lastUser = messages.filter((m) => m.role === 'user').at(-1);
-  const needsReply = lastUser && !messages.some((m) => m.replyToMessageId === lastUser.id);
+  const lastReply = lastUser && messages.find((m) => m.replyToMessageId === lastUser.id);
+  const needsReply = lastUser && !lastReply;
+  const latestReplacement = replacement?.sourceId === lastUser?.id ? replacement : null;
   const statusText = loading
     ? '正在连接本地服务'
     : connected
@@ -541,7 +626,12 @@ export function App() {
               </div>
             </div>
           ))}
-          {replying && (
+          {replyPhase === 'checking' && (
+            <div className="reply-control" role="status">
+              正在检查记录…
+            </div>
+          )}
+          {replyPhase === 'typing' && (
             <div className="message him">
               <Avatar />
               <div className="bubble" role="status">
@@ -572,6 +662,30 @@ export function App() {
                 <button className="pill" onClick={() => void askForReply(lastUser.id, true)}>
                   重新尝试回复
                 </button>
+              )}
+            </div>
+          )}
+          {aiEnabled && lastUser && lastReply?.version && !replying && (
+            <div className="reply-control">
+              {latestReplacement?.error && <p role="status">{latestReplacement.error.message}</p>}
+              {latestReplacement?.state === 'running' ? (
+                <button
+                  className="pill"
+                  disabled={!canSend}
+                  onClick={() => void replaceLatest(lastUser.id)}
+                >
+                  检查重生成结果
+                </button>
+              ) : (
+                (!latestReplacement?.error || latestReplacement.error.retryable) && (
+                  <button
+                    className="pill"
+                    disabled={!canSend}
+                    onClick={() => void replaceLatest(lastUser.id, lastReply.version)}
+                  >
+                    重生成最新回复
+                  </button>
+                )
               )}
             </div>
           )}

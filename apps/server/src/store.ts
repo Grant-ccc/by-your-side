@@ -33,7 +33,7 @@ function date(value: Date | string): string {
 function conversation(row: RowDataPacket): Conversation {
   return { id: row.id, title: row.title, createdAt: date(row.created_at) };
 }
-function message(row: RowDataPacket): Message {
+export function toMessage(row: RowDataPacket): Message {
   const sequence = Number(row.sequence);
   if (!Number.isSafeInteger(sequence)) throw new Error('Message cursor exceeded supported range');
   return {
@@ -46,6 +46,7 @@ function message(row: RowDataPacket): Message {
     status: row.status,
     createdAt: date(row.created_at),
     replyToMessageId: row.reply_to_message_id ?? null,
+    version: row.version,
   };
 }
 
@@ -118,7 +119,7 @@ export class MysqlChatStore implements ChatStore {
       [conversationId, after],
     );
     const hasMore = rows.length > limit;
-    const messages = rows.slice(0, limit).map(message);
+    const messages = rows.slice(0, limit).map(toMessage);
     return { messages, nextCursor: messages.at(-1)?.sequence ?? after, hasMore };
   }
   async saveMessage(conversationId: string, input: SendMessage) {
@@ -139,7 +140,7 @@ export class MysqlChatStore implements ChatStore {
         'SELECT * FROM messages WHERE conversation_id=? AND client_request_id=?',
         [conversationId, input.clientRequestId],
       );
-      const saved = message(rows[0]!);
+      const saved = toMessage(rows[0]!);
       if (saved.text !== input.text)
         throw new StoreError('REQUEST_CONFLICT', '同一个请求标识不能用于不同的消息');
       await connection.commit();

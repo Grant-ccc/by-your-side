@@ -332,13 +332,13 @@ test('AI routes validate IDs and retry flags, read status without generating, an
     async budget() {
       return { limit: 20, spent: 0, reserved: 0, currency: 'CNY' };
     },
-    async status() {
-      return { state: 'idle' };
+    async status(_id, _source, replacement) {
+      return { state: replacement ? 'running' : 'idle' };
     },
-    async reply(_id, _source, retry) {
+    async reply(_id, _source, retry, replacement) {
       calls++;
       if (retry) throw new AiError('AI_BUDGET_EXCEEDED', '本月预算不足', 409);
-      return { state: 'running' };
+      return { state: replacement?.version === 1 ? 'succeeded' : 'running' };
     },
   };
   const app = buildApp(store, { ai });
@@ -347,7 +347,20 @@ test('AI routes validate IDs and retry flags, read status without generating, an
     assert.equal((await app.inject({ url: '/health' })).json().ai, 'configured');
     assert.equal((await app.inject({ url: '/api/ai' })).json().budget.limit, 20);
     assert.equal((await app.inject({ url })).json().state, 'idle');
+    assert.equal((await app.inject({ url: `${url}?replacement=1` })).json().state, 'running');
     assert.equal(calls, 0);
+    const replacement = { version: 1, requestId: randomUUID() };
+    for (const payload of [
+      { replacement: { ...replacement, version: 0 } },
+      { retry: true, replacement },
+    ]) {
+      assert.equal((await app.inject({ method: 'POST', url, payload })).statusCode, 400);
+    }
+    assert.equal(calls, 0);
+    assert.equal(
+      (await app.inject({ method: 'POST', url, payload: { replacement } })).json().state,
+      'succeeded',
+    );
     assert.equal(
       (await app.inject({ method: 'POST', url, payload: { retry: false, apiKey: 'forbidden' } }))
         .statusCode,
@@ -358,7 +371,7 @@ test('AI routes validate IDs and retry flags, read status without generating, an
         .statusCode,
       400,
     );
-    assert.equal(calls, 0);
+    assert.equal(calls, 1);
     assert.equal((await app.inject({ method: 'POST', url, payload: {} })).json().state, 'running');
     const denied = await app.inject({ method: 'POST', url, payload: { retry: true } });
     assert.equal(denied.statusCode, 409);

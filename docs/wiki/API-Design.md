@@ -34,10 +34,16 @@
 | GET /api/conversations/:id/messages?after=cursor | 初始历史与增量同步 | 有序、分页、返回游标 |
 | POST /api/conversations/:id/messages | 保存用户消息 | 请求标识去重，返回 message_id 和处理状态 |
 | GET /api/generations/:id | 查询等待/生成结果 | 重连可恢复，不因断线重复调用 |
-| POST /api/messages/:id/regenerate | 最新回复重新生成 | 校验版本与范围、预算，替换后处理派生事实 |
+| POST /api/conversations/:id/messages/:messageId/reply | 最新回复重新生成 | 校验当前版本与预算，成功后原位替换 |
 | GET /api/usage | 用量与预算 | 区分预留、估算、已结算金额 |
 
 可选的服务端事件流用于前台推送状态更新；断线后仍以数据库同步为准。是否逐 token 显示需要兼顾微信式分条体验，不能因为有流式模型输出就立即把半句话当正式消息保存。
+
+## 最新回复替换
+
+- `messageId` 是最新用户消息的 ID。发送 `POST` 时传 `{ replacement: { version, requestId } }`，其中 `version` 是已保存的角色回复版本，`requestId` 是本次操作的 UUID。`retry: true` 留给此前没有成功保存回复的重试，不能与 `replacement` 同时提交。
+- 同一操作重复提交只返回已有结果。生成成功后，事务更新消息正文和版本并结算预算，保留消息 ID、时间和排序位置。下一轮上下文读取新正文。生成期间如果已经保存更新的用户消息，保留原回复并结算本次已发生的用量。
+- `GET` 加 `?replacement=1` 查询最近一次替换状态以及当前保存的回复。超时、重开与刷新都只查询。模型调用结果未知时，后端拦住对同一条回复的再次重生成。文字预算按估算预留与结算。
 
 ## 后续接口组
 

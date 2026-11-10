@@ -2,6 +2,7 @@ import Fastify from 'fastify';
 import {
   CreateConversationSchema,
   IdSchema,
+  ReplaceReplySchema,
   SendMessageSchema,
   type ServiceHealth,
 } from '@bys/shared';
@@ -123,26 +124,33 @@ export function buildApp(
     budget: options.ai ? await options.ai.budget() : null,
   }));
   for (const method of ['GET', 'POST'] as const) {
-    app.route<{ Params: { id: string; messageId: string } }>({
-      method,
-      url: '/api/conversations/:id/messages/:messageId/reply',
-      handler: async (request, reply) => {
-        const id = IdSchema.safeParse(request.params.id),
-          source = IdSchema.safeParse(request.params.messageId);
-        const body = z
-          .object({ retry: z.boolean().default(false) })
-          .strict()
-          .safeParse(request.body ?? {});
-        if (!id.success || !source.success || (method === 'POST' && !body.success))
-          return reply
-            .code(400)
-            .send({ error: { code: 'INVALID_REQUEST', message: '回复请求格式不正确' } });
-        if (!options.ai) throw new AiError('AI_NOT_CONFIGURED', '尚未配置模型，消息可以保存。');
-        return method === 'GET'
-          ? options.ai.status(id.data, source.data)
-          : options.ai.reply(id.data, source.data, body.success ? body.data.retry : false);
+    app.route<{ Params: { id: string; messageId: string }; Querystring: { replacement?: string } }>(
+      {
+        method,
+        url: '/api/conversations/:id/messages/:messageId/reply',
+        handler: async (request, reply) => {
+          const id = IdSchema.safeParse(request.params.id),
+            source = IdSchema.safeParse(request.params.messageId);
+          const invalid = { error: { code: 'INVALID_REQUEST', message: '回复请求格式不正确' } };
+          if (!id.success || !source.success) return reply.code(400).send(invalid);
+          if (method === 'GET') {
+            if (!options.ai) throw new AiError('AI_NOT_CONFIGURED', '尚未配置模型，消息可以保存。');
+            return options.ai.status(id.data, source.data, request.query.replacement === '1');
+          }
+          const body = z
+            .object({
+              retry: z.boolean().default(false),
+              replacement: ReplaceReplySchema.optional(),
+            })
+            .strict()
+            .safeParse(request.body ?? {});
+          if (!body.success || (body.data.retry && body.data.replacement))
+            return reply.code(400).send(invalid);
+          if (!options.ai) throw new AiError('AI_NOT_CONFIGURED', '尚未配置模型，消息可以保存。');
+          return options.ai.reply(id.data, source.data, body.data.retry, body.data.replacement);
+        },
       },
-    });
+    );
   }
   app.post('/api/conversations', async (request, reply) => {
     const input = CreateConversationSchema.safeParse(request.body);

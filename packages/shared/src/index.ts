@@ -7,6 +7,9 @@ export const SendMessageSchema = z
 export const CreateConversationSchema = z
   .object({ title: z.string().trim().min(1).max(80).default('我们的日常') })
   .strict();
+export const ReplaceReplySchema = z
+  .object({ version: z.number().int().positive().max(4294967295), requestId: IdSchema })
+  .strict();
 export const MessageSchema = z.object({
   id: IdSchema,
   sequence: z.number().int().positive(),
@@ -17,6 +20,7 @@ export const MessageSchema = z.object({
   status: z.enum(['saved', 'waiting', 'failed']),
   createdAt: z.iso.datetime(),
   replyToMessageId: IdSchema.nullable().optional(),
+  version: z.number().int().positive().optional(),
 });
 export const ConversationSchema = z.object({
   id: IdSchema,
@@ -31,6 +35,7 @@ export const HistorySchema = z.object({
 export type Message = z.infer<typeof MessageSchema>;
 export type Conversation = z.infer<typeof ConversationSchema>;
 export type SendMessage = z.infer<typeof SendMessageSchema>;
+export type ReplaceReply = z.infer<typeof ReplaceReplySchema>;
 export type History = z.infer<typeof HistorySchema>;
 export const ReplyResultSchema = z.object({
   state: z.enum(['idle', 'running', 'failed', 'succeeded']),

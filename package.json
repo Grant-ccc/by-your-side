@@ -22,7 +22,7 @@
     "test:prototype": "node 原型/检查原型.cjs",
     "setup:local": "node scripts/init-local-env.mjs",
     "setup:lan": "node scripts/setup-lan.mjs",
-    "dev:lan": "tsx apps/server/src/lan.ts",
+    "dev:lan": "npm run build -w @bys/shared && tsx apps/server/src/lan.ts",
     "android:sync": "npm run build -w @bys/shared && npm run build -w @bys/web && npm exec -w @bys/web -- cap sync android",
     "db:up": "docker compose --env-file .env.local up -d --wait mysql",
     "db:down": "docker compose --env-file .env.local stop mysql",

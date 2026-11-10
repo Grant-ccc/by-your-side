@@ -5,6 +5,10 @@ import https from 'node:https';
 import { checkServerIdentity } from 'node:tls';
 import { X509Certificate, randomUUID } from 'node:crypto';
 import { MysqlChatStore } from '../apps/server/src/store.ts';
+const args = process.argv.slice(2);
+if (args.some((arg) => arg !== '--health'))
+  throw new Error('Usage: npm run test:lan -- [--health]');
+const healthOnly = args.includes('--health');
 const local = JSON.parse(
   await readFile(new URL('../.local/lan/server.json', import.meta.url), 'utf8'),
 );
@@ -53,7 +57,7 @@ function request(path, data, token = local.token, expectedPin = fingerprint, ori
     req.end();
   });
 }
-const store = new MysqlChatStore();
+const store = healthOnly ? null : new MysqlChatStore();
 let conversationId;
 try {
   assert.equal((await request('/health', undefined, '')).status, 401);
@@ -66,25 +70,33 @@ try {
     (await request('/health', undefined, local.token, fingerprint, 'https://evil.example')).status,
     403,
   );
-  assert.equal((await request('/health')).data.database, 'connected');
-  await request('/api/bootstrap');
-  const created = await request('/api/conversations', { title: `lan-check-${randomUUID()}` });
-  assert.equal(created.status, 201);
-  conversationId = created.data.conversation.id;
-  const input = { clientRequestId: randomUUID(), text: '局域网合成连通性检查 🧸' };
-  const first = await request(`/api/conversations/${conversationId}/messages`, input);
-  const duplicate = await request(`/api/conversations/${conversationId}/messages`, input);
-  assert.equal(first.status, 201);
-  assert.equal(duplicate.status, 200);
-  assert.equal(first.data.message.id, duplicate.data.message.id);
-  const history = await request(`/api/conversations/${conversationId}/messages?after=0&limit=50`);
-  assert.equal(history.data.messages.length, 1);
-  assert.equal(history.data.messages[0].text, input.text);
-  console.log(
-    'PASS: real HTTPS, host verification, certificate pin mismatch rejection, device credentials, MySQL persistence and dedupe. No AI call. Phone reachability remains unverified.',
-  );
+  const health = await request('/health');
+  assert.equal(health.status, 200, 'The LAN API did not report healthy MySQL');
+  assert.equal(health.data.database, 'connected');
+  if (healthOnly) {
+    console.log(
+      `LAN HTTPS and MySQL are reachable from this PC. AI: ${health.data.ai}. No writes or model calls.`,
+    );
+  } else {
+    await request('/api/bootstrap');
+    const created = await request('/api/conversations', { title: `lan-check-${randomUUID()}` });
+    assert.equal(created.status, 201);
+    conversationId = created.data.conversation.id;
+    const input = { clientRequestId: randomUUID(), text: '局域网合成连通性检查 🧸' };
+    const first = await request(`/api/conversations/${conversationId}/messages`, input);
+    const duplicate = await request(`/api/conversations/${conversationId}/messages`, input);
+    assert.equal(first.status, 201);
+    assert.equal(duplicate.status, 200);
+    assert.equal(first.data.message.id, duplicate.data.message.id);
+    const history = await request(`/api/conversations/${conversationId}/messages?after=0&limit=50`);
+    assert.equal(history.data.messages.length, 1);
+    assert.equal(history.data.messages[0].text, input.text);
+    console.log(
+      'PASS: real HTTPS, host verification, certificate pin mismatch rejection, device credentials, MySQL persistence and dedupe. No AI call. Phone reachability remains unverified.',
+    );
+  }
 } finally {
-  if (conversationId)
+  if (store && conversationId)
     await store.pool.execute('DELETE FROM conversations WHERE id=?', [conversationId]);
-  await store.close();
+  await store?.close();
 }

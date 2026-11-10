@@ -63,6 +63,49 @@ npm run dev
 
 若默认 3307 端口被其他服务占用，在 `.env.local` 中将 `DB_PORT` 改为可用端口（例如 43307），重新执行 `npm run db:up` 并重启 `npm run dev`。本地环境修改无需上传，也无需停止其他项目的服务。
 
+### 平时启动、检查和停止
+
+在 Docker Desktop 显示运行后，从项目根目录打开 PowerShell。先启动 MySQL，再检查迁移和连接。
+
+```powershell
+npm run db:up
+npm run db:migrate
+npm run db:check
+```
+
+| 使用场景 | 启动并保持终端开着 | 在另一终端检查 |
+| --- | --- | --- |
+| 电脑网页 | `npm run dev` | `Invoke-RestMethod http://127.0.0.1:17400/health`，看 `database` 是否为 `connected` |
+| vivo 试用包 | `npm run dev:lan` | `npm run test:lan -- --health`，核对电脑端 HTTPS、凭据和 MySQL |
+
+手机模式需要已有适用于当前电脑 IP 的配对配置。首次配对或电脑地址变化时，按[安卓局域网说明](Android-LAN.md#电脑准备)执行 `setup:lan`。只用手机时，数据库和 `dev:lan` 两项即可。若改过 `WEB_PORT`，把表中的 17400 换成自己的端口。
+
+`ai: configured` 表示后端已读到模型配置。手机可达性由 App 内实际连接确认。状态检查只读，不生成回复。
+
+网页可以打开但 `/health` 返回 503 时，先用 `npm run db:check` 检查 MySQL。手机后端的只读检查通过、手机仍提示超时时，按[网络排查说明](Android-LAN.md#网络不通如何排查)核对当前网络和配对地址。
+
+结束时，在每个正在运行的服务终端按 `Ctrl+C`。如果 Windows 提示终止批处理作业，输入 `Y` 并回车。确认使用方都退出后，可运行 `npm run db:down` 停止 MySQL。下次 `db:up` 会复用原来的数据卷。
+
+### 在临时副本恢复代码版本
+
+以下命令从项目根目录开始。在 `.local/t08-check` 创建独立克隆，旧版本和现用版本都可以在里面构建。
+
+```powershell
+git status --short --branch
+git log -5 --oneline
+git clone --no-hardlinks . .local/t08-check
+Set-Location .local/t08-check
+git switch --detach 1bfe272
+npm ci
+npm run build
+git switch --detach e35f016
+npm ci
+npm run build
+git rev-parse --short HEAD
+```
+
+示例从加入 TXT 导出前的 `1bfe272` 回到含导出的 `e35f016`。构建演练仅需要 Git 和 npm。若要在临时副本启动服务，另建独立的数据库项目、配置和端口，并用合成数据验证。切换代码后，是否能复用现有数据库取决于版本间的迁移兼容性。数据库备份和恢复单独按[恢复步骤](#导出聊天与演练恢复)执行。
+
 ### 检查
 
 ```sh

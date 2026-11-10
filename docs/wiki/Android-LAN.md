@@ -84,6 +84,8 @@ GitHub Actions 的 `Android trial APK` 工作流执行前端构建、Capacitor �
 | 最新回复重生成 | 已实现，待真机验收 | [试用版 T04](Trial-Scope.md#验收清单) |
 | 导出/恢复 | 未实现 | 后续 S3 |
 
+T04 试用包基于 `1bfe272`。已核对 GitHub 制品摘要，本地 APK 的 SHA-256 为 `d40c677c3759c202f0a5b76cdee7d6f2cb774a906dfb1f58c1fb1a0757240f1a`。本次调试包的签名证书与之前的 `a2f63fc`、`cd79d9f` 试连包不同。若手机仍安装旧包，先备好电脑端的配对配置，再卸载旧版、安装新版并重新配对。聊天历史保存在电脑的 MySQL。[T04 安卓构建与安装包](https://github.com/Grant-ccc/by-your-side/actions/runs/42810045559)
+
 官方参考：[Capacitor 安卓环境](https://capacitorjs.com/docs/getting-started/environment-setup)、[自定义原生插件](https://capacitorjs.com/docs/android/custom-code)、[Android TLS](https://developer.android.com/privacy-and-security/security-ssl)。
 
 本轮交付修正版源码 `a2f63fc`；APK SHA-256 为 `e27d588140d2a75ea60ee9c3e8ece3e2452f3d9bc3d6bb44a3e4cdb33d40828d`。仅记录构建产物，不记录配对配置或私人聊天。
